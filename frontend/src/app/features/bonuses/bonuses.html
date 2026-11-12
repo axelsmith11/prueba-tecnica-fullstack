@@ -68,120 +68,157 @@
     }
   </div>
 
-  <div class="table-wrapper">
-    <table mat-table [dataSource]="page()?.data ?? []">
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Acciones</th>
-        <td mat-cell *matCellDef="let bonus">
-          <button
-            matIconButton
-            type="button"
-            matTooltip="Pagar"
-            [attr.aria-label]="'Pagar bono de ' + bonus.fullName + ' ' + bonus.period"
-            [disabled]="!isRegistered(bonus)"
-            (click)="pay(bonus)"
-          >
-            <mat-icon>payments</mat-icon>
-          </button>
-          <button
-            matIconButton
-            type="button"
-            matTooltip="Anular"
-            [attr.aria-label]="'Anular bono de ' + bonus.fullName + ' ' + bonus.period"
-            [disabled]="!isRegistered(bonus)"
-            (click)="cancel(bonus)"
-          >
-            <mat-icon>block</mat-icon>
-          </button>
-          <button
-            matIconButton
-            type="button"
-            matTooltip="Eliminar"
-            [attr.aria-label]="'Eliminar bono de ' + bonus.fullName + ' ' + bonus.period"
-            [disabled]="!isRegistered(bonus)"
-            (click)="remove(bonus)"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
-          <button
-            matIconButton
-            type="button"
-            matTooltip="Ver detalle del pago"
-            [attr.aria-label]="'Ver detalle del pago de ' + bonus.fullName + ' ' + bonus.period"
-            [disabled]="!isPaid(bonus)"
-            (click)="showPaymentDetail(bonus)"
-          >
-            <mat-icon>receipt_long</mat-icon>
-          </button>
-        </td>
-      </ng-container>
+  <!-- Acciones de una fila: compartidas por la tabla (escritorio) y las tarjetas (celular). -->
+  <ng-template #rowActions let-bonus>
+    <button
+      matIconButton
+      type="button"
+      matTooltip="Pagar"
+      [attr.aria-label]="'Pagar bono de ' + bonus.fullName + ' ' + bonus.period"
+      [disabled]="!isRegistered(bonus)"
+      (click)="pay(bonus)"
+    >
+      <mat-icon>payments</mat-icon>
+    </button>
+    <button
+      matIconButton
+      type="button"
+      matTooltip="Anular"
+      [attr.aria-label]="'Anular bono de ' + bonus.fullName + ' ' + bonus.period"
+      [disabled]="!isRegistered(bonus)"
+      (click)="cancel(bonus)"
+    >
+      <mat-icon>block</mat-icon>
+    </button>
+    <button
+      matIconButton
+      type="button"
+      matTooltip="Eliminar"
+      [attr.aria-label]="'Eliminar bono de ' + bonus.fullName + ' ' + bonus.period"
+      [disabled]="!isRegistered(bonus)"
+      (click)="remove(bonus)"
+    >
+      <mat-icon>delete</mat-icon>
+    </button>
+    <button
+      matIconButton
+      type="button"
+      matTooltip="Ver detalle del pago"
+      [attr.aria-label]="'Ver detalle del pago de ' + bonus.fullName + ' ' + bonus.period"
+      [disabled]="!isPaid(bonus)"
+      (click)="showPaymentDetail(bonus)"
+    >
+      <mat-icon>receipt_long</mat-icon>
+    </button>
+  </ng-template>
 
-      <ng-container matColumnDef="state">
-        <th mat-header-cell *matHeaderCellDef>Estado</th>
-        <td mat-cell *matCellDef="let bonus">
-          <span [class]="'state-chip state-' + bonus.bonusStateCode">{{ bonus.stateDescription }}</span>
-        </td>
-      </ng-container>
+  @if (compact()) {
+    <ul class="bonus-cards" aria-label="Bonos">
+      @for (bonus of page()?.data ?? []; track bonus.bonusId) {
+        <li class="bonus-card">
+          <div class="card-top">
+            <div class="who">
+              <strong>{{ bonus.fullName }}</strong>
+              <span class="secondary">
+                {{ bonus.departmentCode }}-{{ bonus.employeeNumber }} · {{ bonus.departmentName }} ·
+                <span class="nowrap">{{ bonus.period }}</span>
+              </span>
+            </div>
+            <span [class]="'state-chip state-' + bonus.bonusStateCode">{{ bonus.stateDescription }}</span>
+          </div>
+          <p class="card-detail">
+            {{ bonus.bonusTypeDescription }} {{ bonusValue(bonus) }} · {{ bonus.reasonDescription }}
+          </p>
+          <dl class="card-amounts">
+            <div>
+              <dt>Bruto</dt>
+              <dd>{{ bonus.grossAmount | number: '1.2-2' }}</dd>
+            </div>
+            <div>
+              <dt>Retención</dt>
+              <dd>{{ bonus.taxAmount | number: '1.2-2' }}</dd>
+            </div>
+            <div>
+              <dt>Neto</dt>
+              <dd class="net">{{ bonus.netAmount | number: '1.2-2' }}</dd>
+            </div>
+          </dl>
+          <div class="card-actions">
+            <ng-container *ngTemplateOutlet="rowActions; context: { $implicit: bonus }" />
+          </div>
+        </li>
+      } @empty {
+        <li class="empty">{{ loading() ? 'Cargando…' : 'No hay bonos con estos filtros.' }}</li>
+      }
+    </ul>
+  } @else {
+    <div class="table-wrapper">
+      <table mat-table [dataSource]="page()?.data ?? []">
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let bonus">
+            <ng-container *ngTemplateOutlet="rowActions; context: { $implicit: bonus }" />
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="period">
-        <th mat-header-cell *matHeaderCellDef>Periodo</th>
-        <td mat-cell *matCellDef="let bonus">{{ bonus.period }}</td>
-      </ng-container>
+        <ng-container matColumnDef="state">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let bonus">
+            <span [class]="'state-chip state-' + bonus.bonusStateCode">{{ bonus.stateDescription }}</span>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="employee">
-        <th mat-header-cell *matHeaderCellDef>Área / N.º</th>
-        <td mat-cell *matCellDef="let bonus">
-          {{ bonus.departmentCode }}-{{ bonus.employeeNumber }}
-          <span class="secondary">{{ bonus.departmentName }}</span>
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="period">
+          <th mat-header-cell *matHeaderCellDef>Periodo</th>
+          <td mat-cell *matCellDef="let bonus">{{ bonus.period }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="fullName">
-        <th mat-header-cell *matHeaderCellDef>Nombre</th>
-        <td mat-cell *matCellDef="let bonus">{{ bonus.fullName }}</td>
-      </ng-container>
+        <ng-container matColumnDef="employee">
+          <th mat-header-cell *matHeaderCellDef>Empleado</th>
+          <td mat-cell *matCellDef="let bonus">
+            <span class="primary">{{ bonus.fullName }}</span>
+            <span class="secondary">{{ bonus.departmentCode }}-{{ bonus.employeeNumber }} · {{ bonus.departmentName }}</span>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="type">
-        <th mat-header-cell *matHeaderCellDef>Tipo</th>
-        <td mat-cell *matCellDef="let bonus">{{ bonus.bonusTypeDescription }}</td>
-      </ng-container>
+        <ng-container matColumnDef="bonus">
+          <th mat-header-cell *matHeaderCellDef class="amount">Bono</th>
+          <td mat-cell *matCellDef="let bonus" class="amount">
+            <span class="primary">{{ bonusValue(bonus) }}</span>
+            <span class="secondary">{{ bonus.bonusTypeDescription }}</span>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="value">
-        <th mat-header-cell *matHeaderCellDef class="amount">Monto / %</th>
-        <td mat-cell *matCellDef="let bonus" class="amount">
-          {{ bonus.bonusValue | number: '1.2-2' }}{{ isPercentage(bonus) ? ' %' : '' }}
-        </td>
-      </ng-container>
+        <ng-container matColumnDef="reason">
+          <th mat-header-cell *matHeaderCellDef>Motivo</th>
+          <td mat-cell *matCellDef="let bonus">{{ bonus.reasonDescription }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="reason">
-        <th mat-header-cell *matHeaderCellDef>Motivo</th>
-        <td mat-cell *matCellDef="let bonus">{{ bonus.reasonDescription }}</td>
-      </ng-container>
+        <ng-container matColumnDef="gross">
+          <th mat-header-cell *matHeaderCellDef class="amount">Bruto</th>
+          <td mat-cell *matCellDef="let bonus" class="amount">{{ bonus.grossAmount | number: '1.2-2' }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="gross">
-        <th mat-header-cell *matHeaderCellDef class="amount">Bruto</th>
-        <td mat-cell *matCellDef="let bonus" class="amount">{{ bonus.grossAmount | number: '1.2-2' }}</td>
-      </ng-container>
+        <ng-container matColumnDef="tax">
+          <th mat-header-cell *matHeaderCellDef class="amount">Retención</th>
+          <td mat-cell *matCellDef="let bonus" class="amount">{{ bonus.taxAmount | number: '1.2-2' }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="tax">
-        <th mat-header-cell *matHeaderCellDef class="amount">Retención</th>
-        <td mat-cell *matCellDef="let bonus" class="amount">{{ bonus.taxAmount | number: '1.2-2' }}</td>
-      </ng-container>
+        <ng-container matColumnDef="net">
+          <th mat-header-cell *matHeaderCellDef class="amount">Neto</th>
+          <td mat-cell *matCellDef="let bonus" class="amount net">{{ bonus.netAmount | number: '1.2-2' }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="net">
-        <th mat-header-cell *matHeaderCellDef class="amount">Neto</th>
-        <td mat-cell *matCellDef="let bonus" class="amount net">{{ bonus.netAmount | number: '1.2-2' }}</td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-      <tr class="mat-mdc-row" *matNoDataRow>
-        <td class="empty" [attr.colspan]="displayedColumns.length">
-          {{ loading() ? 'Cargando…' : 'No hay bonos con estos filtros.' }}
-        </td>
-      </tr>
-    </table>
-  </div>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr class="mat-mdc-row" *matNoDataRow>
+          <td class="empty" [attr.colspan]="displayedColumns.length">
+            {{ loading() ? 'Cargando…' : 'No hay bonos con estos filtros.' }}
+          </td>
+        </tr>
+      </table>
+    </div>
+  }
 
   <footer class="table-footer">
     <span class="total">Total: {{ page()?.totalRecords ?? 0 }} registros</span>

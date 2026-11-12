@@ -1,4 +1,5 @@
-import { DecimalPipe, formatNumber } from '@angular/common';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { DecimalPipe, NgTemplateOutlet, formatNumber } from '@angular/common';
 import { Component, Injector, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,7 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { EMPTY, Observable, Subject, catchError, filter, finalize, noop, switchMap } from 'rxjs';
+import { EMPTY, Observable, Subject, catchError, filter, finalize, map, noop, switchMap } from 'rxjs';
 import { BonusFilter, BonusListItem, BonusSummary, EMPTY_BONUS_FILTER, MAX_EXPORT_ROWS } from '../../core/models/bonus';
 import { BonusStates, BonusTypes, MasterStateCodes } from '../../core/models/catalog';
 import { PagedResponse } from '../../core/models/paged-response';
@@ -31,6 +32,7 @@ import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dial
   selector: 'app-bonuses',
   imports: [
     DecimalPipe,
+    NgTemplateOutlet,
     ReactiveFormsModule,
     BonusSummaryCards,
     MatButtonModule,
@@ -59,8 +61,13 @@ export class Bonuses {
 
   protected readonly pageSize = 10;
   protected readonly displayedColumns = [
-    'actions', 'state', 'period', 'employee', 'fullName', 'type', 'value', 'reason', 'gross', 'tax', 'net',
+    'actions', 'state', 'period', 'employee', 'bonus', 'reason', 'gross', 'tax', 'net',
   ];
+  /** En pantallas angostas la tabla se reemplaza por tarjetas para evitar el scroll horizontal. */
+  protected readonly compact = toSignal(
+    inject(BreakpointObserver).observe('(max-width: 1199.98px)').pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
   protected readonly departments = toSignal(this.catalogApi.getDepartments(), { initialValue: [] });
   protected readonly bonusStates = toSignal(this.catalogApi.getStates(MasterStateCodes.Bonus), { initialValue: [] });
   protected readonly periodOptions = recentPeriods();
@@ -133,8 +140,10 @@ export class Bonuses {
     return bonus.bonusStateCode === BonusStates.Registered;
   }
 
-  protected isPercentage(bonus: BonusListItem): boolean {
-    return bonus.bonusTypeId === BonusTypes.SalaryPercentage;
+  /** Monto fijo ("150.00") o porcentaje ("5.00 %"), igual en la tabla y en las tarjetas. */
+  protected bonusValue(bonus: BonusListItem): string {
+    const value = formatNumber(bonus.bonusValue, 'en-US', '1.2-2');
+    return bonus.bonusTypeId === BonusTypes.SalaryPercentage ? `${value} %` : value;
   }
 
   protected isPaid(bonus: BonusListItem): boolean {
