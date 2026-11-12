@@ -73,43 +73,42 @@
     <button
       matIconButton
       type="button"
-      matTooltip="Pagar"
-      [attr.aria-label]="'Pagar bono de ' + bonus.fullName + ' ' + bonus.period"
-      [disabled]="!isRegistered(bonus)"
-      (click)="pay(bonus)"
+      matTooltip="Acciones"
+      [attr.aria-label]="'Acciones del bono de ' + bonus.fullName + ' ' + bonus.period"
+      [matMenuTriggerFor]="actionsMenu"
     >
-      <mat-icon>payments</mat-icon>
+      <mat-icon>more_vert</mat-icon>
     </button>
-    <button
-      matIconButton
-      type="button"
-      matTooltip="Anular"
-      [attr.aria-label]="'Anular bono de ' + bonus.fullName + ' ' + bonus.period"
-      [disabled]="!isRegistered(bonus)"
-      (click)="cancel(bonus)"
-    >
-      <mat-icon>block</mat-icon>
-    </button>
-    <button
-      matIconButton
-      type="button"
-      matTooltip="Eliminar"
-      [attr.aria-label]="'Eliminar bono de ' + bonus.fullName + ' ' + bonus.period"
-      [disabled]="!isRegistered(bonus)"
-      (click)="remove(bonus)"
-    >
-      <mat-icon>delete</mat-icon>
-    </button>
-    <button
-      matIconButton
-      type="button"
-      matTooltip="Ver detalle del pago"
-      [attr.aria-label]="'Ver detalle del pago de ' + bonus.fullName + ' ' + bonus.period"
-      [disabled]="!isPaid(bonus)"
-      (click)="showPaymentDetail(bonus)"
-    >
-      <mat-icon>receipt_long</mat-icon>
-    </button>
+    <mat-menu #actionsMenu="matMenu">
+      <button mat-menu-item type="button" [disabled]="!isRegistered(bonus)" (click)="pay(bonus)">
+        <mat-icon>payments</mat-icon>
+        <span class="menu-label">
+          Pagar
+          @if (!isRegistered(bonus)) { <small>Solo bonos registrados</small> }
+        </span>
+      </button>
+      <button mat-menu-item type="button" [disabled]="!isRegistered(bonus)" (click)="cancel(bonus)">
+        <mat-icon>block</mat-icon>
+        <span class="menu-label">
+          Anular
+          @if (!isRegistered(bonus)) { <small>Solo bonos registrados</small> }
+        </span>
+      </button>
+      <button mat-menu-item type="button" [disabled]="!isRegistered(bonus)" (click)="remove(bonus)">
+        <mat-icon>delete</mat-icon>
+        <span class="menu-label">
+          Eliminar
+          @if (!isRegistered(bonus)) { <small>Solo bonos registrados</small> }
+        </span>
+      </button>
+      <button mat-menu-item type="button" [disabled]="!isPaid(bonus)" (click)="showPaymentDetail(bonus)">
+        <mat-icon>receipt_long</mat-icon>
+        <span class="menu-label">
+          Ver detalle del pago
+          @if (!isPaid(bonus)) { <small>Solo bonos pagados</small> }
+        </span>
+      </button>
+    </mat-menu>
   </ng-template>
 
   @if (compact()) {
