@@ -144,6 +144,19 @@ export class Bonuses {
     );
   }
 
+  protected pay(bonus: BonusListItem): void {
+    const gross = bonus.grossAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    this.runConfirmedAction(
+      {
+        title: 'Pagar bono',
+        message: `¿Pagar el bono de ${bonus.fullName} (${bonus.period})? El bruto de ${gross} se repartirá entre sus proyectos según las horas.`,
+        confirmText: 'Pagar',
+      },
+      () => this.bonusApi.pay(bonus.bonusId),
+      'Bono pagado y distribuido por proyecto.',
+    );
+  }
+
   protected reload(resetPage: boolean): void {
     if (resetPage) {
       this.pageIndex.set(0);

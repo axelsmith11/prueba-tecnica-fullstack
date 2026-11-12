@@ -42,4 +42,8 @@ export class BonusApi {
   delete(bonusId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${bonusId}`);
   }
+
+  pay(bonusId: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${bonusId}/pay`, null);
+  }
 }
