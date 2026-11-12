@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   NonNullableFormBuilder,
@@ -16,9 +16,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { EMPTY, Subject, catchError, distinctUntilChanged, finalize, map, noop, switchMap, takeUntil } from 'rxjs';
+import { EMPTY, Subject, of, startWith, catchError, distinctUntilChanged, finalize, map, noop, switchMap, takeUntil } from 'rxjs';
 import { EmployeeLookup } from '../../../core/models/bonus';
-import { BonusTypes } from '../../../core/models/catalog';
+import { BonusStates, BonusTypes } from '../../../core/models/catalog';
 import { BonusApi } from '../../../core/services/bonus-api';
 import { CatalogApi } from '../../../core/services/catalog-api';
 import { calculateBonus } from '../../../core/utils/bonus-calculator';
@@ -94,6 +94,38 @@ export class RegisterBonusDialog {
     }
     return calculateBonus(bonusTypeId, bonusValue, employee.monthlySalary, employee.taxRate);
   });
+
+  /** Bono vigente del empleado en el periodo elegido; null mientras se consulta o si no hay. */
+  protected readonly duplicate = toSignal(
+    toObservable(
+      computed(() => {
+        const employee = this.employee();
+        const period = this.formValue().period;
+        return employee && period ? { employee, period } : null;
+      }),
+    ).pipe(
+      switchMap((target) => {
+        if (!target) return of(null);
+        const { employee, period } = target;
+        const filter = {
+          departmentCode: employee.departmentCode,
+          employeeNumber: employee.employeeNumber,
+          period,
+          bonusStateCode: '',
+        };
+        return this.bonusApi.search(filter, 1, 10).pipe(
+          map((page) => {
+            const existing = page.data.find((bonus) => bonus.bonusStateCode !== BonusStates.Cancelled);
+            const label = this.periodOptions.find((option) => option.value === period)?.label ?? period;
+            return existing ? { state: existing.stateDescription, periodLabel: label } : null;
+          }),
+          catchError(() => EMPTY),
+          startWith(null),
+        );
+      }),
+    ),
+    { initialValue: null },
+  );
 
   constructor() {
     // Cambiar el tipo cambia el máximo permitido: se revalida el valor.

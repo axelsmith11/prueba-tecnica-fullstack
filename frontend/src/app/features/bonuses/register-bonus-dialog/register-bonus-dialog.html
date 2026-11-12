@@ -88,6 +88,13 @@
       </mat-form-field>
     </form>
 
+    @if (duplicate(); as existing) {
+      <p class="duplicate" role="status">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        Este empleado ya tiene un bono {{ existing.state }} en {{ existing.periodLabel }}. Anúlalo o elige otro periodo.
+      </p>
+    }
+
     <section class="preview" aria-live="polite" aria-label="Vista previa del cálculo">
       <div>
         <span>Bruto</span>
@@ -113,7 +120,7 @@
     matButton="filled"
     type="submit"
     form="bonus-form"
-    [disabled]="!employee() || saving()"
+    [disabled]="!employee() || saving() || !!duplicate()"
   >
     {{ saving() ? 'Guardando…' : 'Guardar' }}
   </button>
