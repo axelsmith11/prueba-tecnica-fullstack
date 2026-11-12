@@ -13,11 +13,12 @@
 
 .notification {
   position: fixed;
+  transform: translateX(-50%);
+  margin: 0;
+  border: 0;
+  inset: auto;
   top: 16px;
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 1100;
-  display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
@@ -25,6 +26,10 @@
   padding: 12px 16px;
   border-radius: 6px;
   box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+}
+
+.notification:popover-open {
+  display: flex;
 }
 
 .notification-error {

@@ -3,7 +3,7 @@
 </header>
 
 @if (notification.message(); as message) {
-  <div [class]="'notification notification-' + message.type" role="alert">
+  <div #banner popover="manual" [class]="'notification notification-' + message.type" role="alert">
     <span>{{ message.text }}</span>
     <button type="button" class="notification-close" aria-label="Cerrar" (click)="notification.clear()">×</button>
   </div>

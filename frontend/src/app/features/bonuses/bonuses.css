@@ -52,8 +52,14 @@ table {
   white-space: nowrap;
 }
 
+.mat-column-period,
+.mat-column-employee {
+  white-space: nowrap;
+}
+
 .secondary {
   display: block;
+  white-space: normal;
   font-size: 0.8rem;
   color: var(--text-muted);
 }

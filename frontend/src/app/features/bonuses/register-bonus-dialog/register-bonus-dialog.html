@@ -113,7 +113,7 @@
     matButton="filled"
     type="submit"
     form="bonus-form"
-    [disabled]="!employee() || bonusForm.invalid || saving()"
+    [disabled]="!employee() || saving()"
   >
     {{ saving() ? 'Guardando…' : 'Guardar' }}
   </button>
