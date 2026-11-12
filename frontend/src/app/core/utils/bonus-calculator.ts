@@ -3,7 +3,7 @@ import { BonusTypes } from '../models/catalog';
 
 /** Redondea a 2 decimales con el medio hacia arriba. */
 export function roundMoney(value: number): number {
-  return (Math.sign(value) * Math.round((Math.abs(value) + Number.EPSILON) * 100)) / 100;
+  return (Math.sign(value) * Math.round(Number((Math.abs(value) * 100).toPrecision(15)))) / 100;
 }
 
 /**
