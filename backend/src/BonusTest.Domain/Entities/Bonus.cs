@@ -82,7 +82,7 @@ public class Bonus
 
     private void EnsureRegistered()
     {
-        if (BonusStateCode != BonusStates.Registered)
+        if (IsDeleted || BonusStateCode != BonusStates.Registered)
             throw BonusErrors.BonusNotRegistered();
     }
 

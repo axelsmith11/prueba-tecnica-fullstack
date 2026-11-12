@@ -158,6 +158,27 @@ public class BonusServiceTests
     }
 
     [Fact]
+    public async Task Register_trims_user_code()
+    {
+        await _service.RegisterAsync(Request(), "  rrhh  ", CancellationToken.None);
+
+        Assert.Equal("rrhh", Assert.Single(_repository.Bonuses).CreatedBy);
+    }
+
+    [Fact]
+    public async Task Delete_marks_bonus_as_deleted_and_audits()
+    {
+        await _service.RegisterAsync(Request(), User, CancellationToken.None);
+
+        await _service.DeleteAsync(0, "rrhh", CancellationToken.None);
+
+        var bonus = Assert.Single(_repository.Bonuses);
+        Assert.True(bonus.IsDeleted);
+        Assert.Equal("rrhh", bonus.UpdatedBy);
+        Assert.Equal(Today.DateTime, bonus.UpdatedAt);
+    }
+
+    [Fact]
     public async Task Cancel_fails_for_unknown_bonus()
     {
         var error = await Assert.ThrowsAsync<BusinessException>(() => _service.CancelAsync(99, User, CancellationToken.None));

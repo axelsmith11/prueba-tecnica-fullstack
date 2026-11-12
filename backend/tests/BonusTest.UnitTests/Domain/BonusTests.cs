@@ -96,6 +96,18 @@ public class BonusTests
     }
 
     [Fact]
+    public void Cancel_fails_when_bonus_is_deleted()
+    {
+        var bonus = NewBonus();
+        bonus.Delete("rrhh", Later);
+
+        var error = Assert.Throws<BusinessException>(() => bonus.Cancel("rrhh", Later));
+
+        Assert.Equal("BONUS_NOT_REGISTERED", error.Code);
+        Assert.Equal(BonusStates.Registered, bonus.BonusStateCode);
+    }
+
+    [Fact]
     public void Pay_marks_bonus_as_paid_and_returns_one_detail_per_project()
     {
         var bonus = NewBonus(); // bruto 500.00
