@@ -16,7 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { distinctUntilChanged, finalize, map, noop } from 'rxjs';
+import { EMPTY, Subject, catchError, distinctUntilChanged, finalize, map, noop, switchMap, takeUntil } from 'rxjs';
 import { EmployeeLookup } from '../../../core/models/bonus';
 import { BonusTypes } from '../../../core/models/catalog';
 import { BonusApi } from '../../../core/services/bonus-api';
@@ -51,6 +51,9 @@ export class RegisterBonusDialog {
   private readonly catalogApi = inject(CatalogApi);
   private readonly dialogRef = inject<MatDialogRef<RegisterBonusDialog, boolean>>(MatDialogRef);
   private readonly fb = inject(NonNullableFormBuilder);
+
+  private readonly search$ = new Subject<{ departmentCode: string; employeeNumber: number }>();
+  private readonly cancelSearch$ = new Subject<void>();
 
   protected readonly maxPeriod = currentPeriod();
   protected readonly departments = toSignal(this.catalogApi.getDepartments(), { initialValue: [] });
@@ -103,7 +106,28 @@ export class RegisterBonusDialog {
       )
       .subscribe(() => this.bonusForm.controls.bonusValue.updateValueAndValidity());
     // Si se cambia el área o el número, el empleado mostrado ya no corresponde.
-    this.searchForm.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.employee.set(null));
+    this.searchForm.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.cancelSearch$.next();
+      this.employee.set(null);
+    });
+    // switchMap descarta la respuesta de una búsqueda anterior; cancelSearch$ cancela la pendiente
+    // cuando cambian los campos de búsqueda.
+    this.search$
+      .pipe(
+        switchMap(({ departmentCode, employeeNumber }) => {
+          this.searching.set(true);
+          return this.bonusApi.getEmployee(departmentCode, employeeNumber).pipe(
+            takeUntil(this.cancelSearch$),
+            catchError(() => EMPTY), // el interceptor ya mostró el motivo (no existe o está cesado)
+            finalize(() => this.searching.set(false)),
+          );
+        }),
+        takeUntilDestroyed(),
+      )
+      .subscribe((employee) => {
+        this.employee.set(employee);
+        this.bonusForm.controls.bonusValue.updateValueAndValidity();
+      });
   }
 
   protected searchEmployee(): void {
@@ -112,17 +136,7 @@ export class RegisterBonusDialog {
       return;
     }
     const { departmentCode, employeeNumber } = this.searchForm.getRawValue();
-    this.searching.set(true);
-    this.bonusApi
-      .getEmployee(departmentCode, employeeNumber!)
-      .pipe(finalize(() => this.searching.set(false)))
-      .subscribe({
-        next: (employee) => {
-          this.employee.set(employee);
-          this.bonusForm.controls.bonusValue.updateValueAndValidity();
-        },
-        error: noop, // el interceptor ya mostró el motivo (no existe o está cesado)
-      });
+    this.search$.next({ departmentCode, employeeNumber: employeeNumber! });
   }
 
   protected save(): void {

@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { DecimalPipe, formatNumber } from '@angular/common';
+import { Component, Injector, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -45,6 +45,8 @@ export class Bonuses {
   private readonly bonusApi = inject(BonusApi);
   private readonly catalogApi = inject(CatalogApi);
   private readonly dialog = inject(MatDialog);
+  // Los diálogos se abren con el MatDialog raíz: se les pasa este injector para que vean los proveedores de la ruta.
+  private readonly injector = inject(Injector);
   private readonly notification = inject(Notification);
   private readonly reload$ = new Subject<void>();
   private appliedFilter: BonusFilter = EMPTY_BONUS_FILTER;
@@ -98,7 +100,7 @@ export class Bonuses {
 
   protected openRegister(): void {
     this.dialog
-      .open<RegisterBonusDialog, void, boolean>(RegisterBonusDialog, { width: '720px', maxWidth: '95vw' })
+      .open<RegisterBonusDialog, void, boolean>(RegisterBonusDialog, { width: '720px', maxWidth: '95vw', injector: this.injector })
       .afterClosed()
       .pipe(filter(Boolean))
       .subscribe(() => {
@@ -145,7 +147,7 @@ export class Bonuses {
   }
 
   protected pay(bonus: BonusListItem): void {
-    const gross = bonus.grossAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const gross = formatNumber(bonus.grossAmount, 'en-US', '1.2-2');
     this.runConfirmedAction(
       {
         title: 'Pagar bono',
@@ -165,7 +167,7 @@ export class Bonuses {
   }
 
   private runConfirmedAction(data: ConfirmDialogData, action: () => Observable<void>, successMessage: string): void {
-    confirmAction(this.dialog, data)
+    confirmAction(this.dialog, data, this.injector)
       .pipe(filter(Boolean), switchMap(action))
       .subscribe({
         next: () => {

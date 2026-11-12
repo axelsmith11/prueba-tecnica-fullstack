@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, Injector, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Observable, map } from 'rxjs';
@@ -27,10 +27,13 @@ export class ConfirmDialog {
   protected readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);
 }
 
-/** Abre la confirmación y emite true solo si el usuario acepta. */
-export function confirmAction(dialog: MatDialog, data: ConfirmDialogData): Observable<boolean> {
+/**
+ * Abre la confirmación y emite true solo si el usuario acepta.
+ * `injector` permite que el diálogo vea los proveedores de la ruta que lo abre.
+ */
+export function confirmAction(dialog: MatDialog, data: ConfirmDialogData, injector?: Injector): Observable<boolean> {
   return dialog
-    .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data, width: '420px' })
+    .open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, { data, width: '420px', injector })
     .afterClosed()
     .pipe(map((accepted) => accepted === true));
 }

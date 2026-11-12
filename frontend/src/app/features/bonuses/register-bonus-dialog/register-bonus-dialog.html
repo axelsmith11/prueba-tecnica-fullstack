@@ -30,23 +30,23 @@
     }
   </div>
 
-  @if (employee(); as employee) {
+  @if (employee(); as found) {
     <dl class="employee-card">
       <div>
         <dt>Empleado</dt>
-        <dd>{{ employee.fullName }}</dd>
+        <dd>{{ found.fullName }}</dd>
       </div>
       <div>
         <dt>Fecha de ingreso</dt>
-        <dd>{{ employee.hireDate | date: 'dd/MM/yyyy' }}</dd>
+        <dd>{{ found.hireDate | date: 'dd/MM/yyyy' }}</dd>
       </div>
       <div>
         <dt>Sueldo mensual</dt>
-        <dd>{{ employee.monthlySalary | number: '1.2-2' }}</dd>
+        <dd>{{ found.monthlySalary | number: '1.2-2' }}</dd>
       </div>
       <div>
         <dt>Retención</dt>
-        <dd>{{ employee.taxRate | number: '1.0-2' }} %</dd>
+        <dd>{{ found.taxRate | number: '1.0-2' }} %</dd>
       </div>
     </dl>
 

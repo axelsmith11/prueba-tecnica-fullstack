@@ -2,6 +2,6 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'bonuses' },
-  { path: 'bonuses', loadComponent: () => import('./features/bonuses/bonuses').then((m) => m.Bonuses) },
+  { path: 'bonuses', loadChildren: () => import('./features/bonuses/bonuses.routes').then((m) => m.bonusesRoutes) },
   { path: '**', redirectTo: 'bonuses' },
 ];
