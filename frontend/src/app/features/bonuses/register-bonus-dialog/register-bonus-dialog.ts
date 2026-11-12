@@ -22,7 +22,7 @@ import { BonusTypes } from '../../../core/models/catalog';
 import { BonusApi } from '../../../core/services/bonus-api';
 import { CatalogApi } from '../../../core/services/catalog-api';
 import { calculateBonus } from '../../../core/utils/bonus-calculator';
-import { PERIOD_PATTERN, currentPeriod, maxPeriodValidator } from '../../../core/utils/period';
+import { currentPeriod, recentPeriods } from '../../../core/utils/period';
 
 const TWO_DECIMALS_PATTERN = /^\d+(\.\d{1,2})?$/;
 const MAX_PERCENTAGE = 100;
@@ -55,7 +55,8 @@ export class RegisterBonusDialog {
   private readonly search$ = new Subject<{ departmentCode: string; employeeNumber: number }>();
   private readonly cancelSearch$ = new Subject<void>();
 
-  protected readonly maxPeriod = currentPeriod();
+  // El desplegable solo ofrece meses hasta el actual: un periodo futuro no se puede elegir.
+  protected readonly periodOptions = recentPeriods();
   protected readonly departments = toSignal(this.catalogApi.getDepartments(), { initialValue: [] });
   protected readonly bonusTypes = toSignal(this.catalogApi.getBonusTypes(), { initialValue: [] });
   protected readonly reasons = toSignal(this.catalogApi.getBonusReasons(), { initialValue: [] });
@@ -69,7 +70,7 @@ export class RegisterBonusDialog {
   });
 
   protected readonly bonusForm = this.fb.group({
-    period: [this.maxPeriod, [Validators.required, Validators.pattern(PERIOD_PATTERN), maxPeriodValidator(this.maxPeriod)]],
+    period: [currentPeriod(), Validators.required],
     bonusTypeId: [BonusTypes.SalaryPercentage as number, Validators.required],
     bonusValue: [null as number | null, [Validators.required, (control: AbstractControl) => this.validateBonusValue(control)]],
     reasonCode: ['', Validators.required],

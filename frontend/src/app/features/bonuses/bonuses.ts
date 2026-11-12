@@ -20,6 +20,7 @@ import { BonusApi } from '../../core/services/bonus-api';
 import { CatalogApi } from '../../core/services/catalog-api';
 import { Notification } from '../../core/services/notification';
 import { csvFileName, downloadFile } from '../../core/utils/download';
+import { recentPeriods } from '../../core/utils/period';
 import { ConfirmDialogData, confirmAction } from '../../shared/confirm-dialog/confirm-dialog';
 import { BonusSummaryCards } from './bonus-summary-cards/bonus-summary-cards';
 import { PaymentDetailDialog, PaymentDetailDialogData } from './payment-detail-dialog/payment-detail-dialog';
@@ -62,6 +63,7 @@ export class Bonuses {
   ];
   protected readonly departments = toSignal(this.catalogApi.getDepartments(), { initialValue: [] });
   protected readonly bonusStates = toSignal(this.catalogApi.getStates(MasterStateCodes.Bonus), { initialValue: [] });
+  protected readonly periodOptions = recentPeriods();
   protected readonly loading = signal(false);
   protected readonly pageIndex = signal(0);
   protected readonly page = signal<PagedResponse<BonusListItem> | null>(null);

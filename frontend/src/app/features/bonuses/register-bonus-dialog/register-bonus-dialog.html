@@ -53,12 +53,12 @@
     <form id="bonus-form" class="bonus-form" [formGroup]="bonusForm" (ngSubmit)="save()">
       <mat-form-field>
         <mat-label>Periodo</mat-label>
-        <input matInput type="month" formControlName="period" [max]="maxPeriod" required />
-        @if (bonusForm.controls.period.hasError('maxPeriod')) {
-          <mat-error>No puede ser posterior a {{ maxPeriod }}</mat-error>
-        } @else {
-          <mat-error>Ingresa el periodo (YYYY-MM)</mat-error>
-        }
+        <mat-select formControlName="period" required>
+          @for (option of periodOptions; track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+        <mat-error>Selecciona el periodo</mat-error>
       </mat-form-field>
 
       <mat-radio-group formControlName="bonusTypeId" aria-label="Tipo de bono" class="types">
