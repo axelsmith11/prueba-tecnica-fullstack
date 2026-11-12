@@ -1,3 +1,4 @@
+using System.Text;
 using BonusTest.Domain.Services;
 using BonusTest.Application.Bonuses;
 using BonusTest.Domain.Constants;
@@ -246,5 +247,78 @@ public class BonusServiceTests
 
         Assert.Equal("BONUS_NOT_REGISTERED", error.Code);
         Assert.Empty(_repository.PaymentDetails);
+    }
+
+    private static BonusListItemDto ExportRow(int id) =>
+        new(id, "0201", "Registrado", "2026-10", "TECH1", "Tecnología", 101, "Andrea Torres Vega", 2,
+            "Porcentaje del sueldo", 10m, "Cumplimiento de metas", 500m, 40m, 460m);
+
+    [Fact]
+    public async Task Summary_is_built_from_state_totals()
+    {
+        _repository.StateTotals.Add(new BonusStateTotals(BonusStates.Registered, 2, 1000m, 80m, 920m));
+
+        var summary = await _service.GetSummaryAsync(new BonusFilter(), CancellationToken.None);
+
+        Assert.Equal(new BonusSummaryDto(2, 920m, 0, 0m, 0, 1000m, 80m, 920m), summary);
+    }
+
+    [Fact]
+    public async Task Export_returns_utf8_csv_with_bom_and_dated_file_name()
+    {
+        _repository.ExportRows.AddRange([ExportRow(2), ExportRow(1)]);
+
+        var file = await _service.ExportAsync(new BonusFilter(), CancellationToken.None);
+
+        Assert.Equal("bonos-20261112.csv", file.FileName);
+        Assert.Equal(Encoding.UTF8.GetPreamble(), file.Content.Take(3));
+        var text = Encoding.UTF8.GetString(file.Content, 3, file.Content.Length - 3);
+        Assert.StartsWith("Estado,Periodo,Área,", text);
+        Assert.Equal(3, text.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Length);
+    }
+
+    [Fact]
+    public async Task Export_rejects_more_rows_than_the_limit()
+    {
+        _repository.ExportRows.AddRange(Enumerable.Range(1, BonusService.MaxExportRows + 1).Select(ExportRow));
+
+        var error = await Assert.ThrowsAsync<BusinessException>(
+            () => _service.ExportAsync(new BonusFilter(), CancellationToken.None));
+
+        Assert.Equal("EXPORT_TOO_LARGE", error.Code);
+    }
+
+    [Fact]
+    public async Task Payment_detail_fails_for_unknown_bonus()
+    {
+        var error = await Assert.ThrowsAsync<BusinessException>(
+            () => _service.GetPaymentDetailAsync(99, CancellationToken.None));
+
+        Assert.Equal("BONUS_NOT_FOUND", error.Code);
+    }
+
+    [Fact]
+    public async Task Payment_detail_fails_for_unpaid_bonus()
+    {
+        await _service.RegisterAsync(Request(), User, CancellationToken.None);
+
+        var error = await Assert.ThrowsAsync<BusinessException>(
+            () => _service.GetPaymentDetailAsync(0, CancellationToken.None));
+
+        Assert.Equal("BONUS_NOT_PAID", error.Code);
+    }
+
+    [Fact]
+    public async Task Payment_detail_returns_lines_of_a_paid_bonus()
+    {
+        _repository.Projects.Add(new ProjectHours("Portal de clientes", 160m));
+        await _service.RegisterAsync(Request(), User, CancellationToken.None); // bruto 500.00
+        await _service.PayAsync(0, User, CancellationToken.None);
+        _repository.PaymentLines.Add(new PaymentLineDto("Portal de clientes", 160m, 500m));
+
+        var detail = await _service.GetPaymentDetailAsync(0, CancellationToken.None);
+
+        Assert.Equal(500m, detail.GrossAmount);
+        Assert.Equal(new PaymentLineDto("Portal de clientes", 160m, 500m), Assert.Single(detail.Lines));
     }
 }

@@ -54,4 +54,17 @@ internal sealed class FakeBonusRepository : IBonusRepository
         SaveChangesCalls++;
         return Task.CompletedTask;
     }
+
+    public List<BonusStateTotals> StateTotals { get; } = [];
+    public List<BonusListItemDto> ExportRows { get; } = [];
+    public List<PaymentLineDto> PaymentLines { get; } = [];
+
+    public Task<IReadOnlyList<BonusStateTotals>> GetStateTotalsAsync(BonusFilter filter, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BonusStateTotals>>(StateTotals);
+
+    public Task<IReadOnlyList<BonusListItemDto>> GetForExportAsync(BonusFilter filter, int maxRows, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BonusListItemDto>>(ExportRows.Take(maxRows).ToList());
+
+    public Task<IReadOnlyList<PaymentLineDto>> GetPaymentLinesAsync(int bonusId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<PaymentLineDto>>(PaymentLines);
 }

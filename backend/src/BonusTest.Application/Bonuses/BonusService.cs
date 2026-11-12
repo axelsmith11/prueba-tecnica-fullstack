@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using BonusTest.Application.Common;
 using BonusTest.Domain.Constants;
 using BonusTest.Domain.Entities;
@@ -20,6 +21,32 @@ public class BonusService(IBonusRepository repository, TimeProvider timeProvider
 
     public Task<PagedResponse<BonusListItemDto>> SearchAsync(BonusFilter filter, CancellationToken cancellationToken) =>
         repository.GetPagedAsync(filter, cancellationToken);
+
+    public const int MaxExportRows = 10_000;
+
+    public async Task<BonusSummaryDto> GetSummaryAsync(BonusFilter filter, CancellationToken cancellationToken) =>
+        BonusSummaryCalculator.Build(await repository.GetStateTotalsAsync(filter, cancellationToken));
+
+    /// <summary>CSV con todos los bonos del filtro (no solo la página), en UTF-8 con BOM para que Excel muestre acentos.</summary>
+    public async Task<BonusExportFile> ExportAsync(BonusFilter filter, CancellationToken cancellationToken)
+    {
+        var rows = await repository.GetForExportAsync(filter, MaxExportRows + 1, cancellationToken);
+        if (rows.Count > MaxExportRows)
+            throw BonusErrors.ExportTooLarge();
+
+        byte[] content = [.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(BonusCsvWriter.Write(rows))];
+        return new BonusExportFile(content, $"bonos-{Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}.csv");
+    }
+
+    public async Task<BonusPaymentDetailDto> GetPaymentDetailAsync(int bonusId, CancellationToken cancellationToken)
+    {
+        var bonus = await FindBonusAsync(bonusId, cancellationToken);
+        if (bonus.BonusStateCode != BonusStates.Paid)
+            throw BonusErrors.BonusNotPaid();
+
+        var lines = await repository.GetPaymentLinesAsync(bonus.BonusId, cancellationToken);
+        return new BonusPaymentDetailDto(bonus.BonusId, bonus.GrossAmount, lines);
+    }
 
     public async Task<EmployeeLookupDto> GetActiveEmployeeAsync(string departmentCode, int employeeNumber,
         CancellationToken cancellationToken)

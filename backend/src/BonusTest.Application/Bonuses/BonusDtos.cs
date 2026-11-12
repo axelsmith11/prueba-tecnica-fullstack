@@ -45,3 +45,10 @@ public record RegisterBonusRequest(
     string ReasonCode);
 
 public record RegisteredBonusDto(int BonusId, decimal GrossAmount, decimal TaxAmount, decimal NetAmount);
+
+public record PaymentLineDto(string ProjectName, decimal Hours, decimal Amount);
+
+public record BonusPaymentDetailDto(int BonusId, decimal GrossAmount, IReadOnlyList<PaymentLineDto> Lines);
+
+/// <summary>Archivo listo para descargar (bytes con BOM UTF-8 y nombre sugerido).</summary>
+public record BonusExportFile(byte[] Content, string FileName);
