@@ -12,13 +12,19 @@
 }
 
 .notification {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
-  margin: 16px auto 0;
+  gap: 16px;
+  width: min(720px, calc(100% - 32px));
   padding: 12px 16px;
   border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
 }
 
 .notification-error {

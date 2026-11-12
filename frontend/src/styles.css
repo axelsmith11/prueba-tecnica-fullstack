@@ -1,4 +1,4 @@
-/* Estilos globales mínimos. Puedes reemplazarlos o usar la librería de UI que prefieras. */
+/* Estilos globales. Los componentes usan Angular Material (tema azure-blue). */
 :root {
   --primary: #1f5fa8;
   --text: #1f2933;
@@ -6,6 +6,11 @@
   --border: #d9e2ec;
   --surface: #ffffff;
   --background: #f5f7fa;
+  --info-bg: #e3f0fb;
+  --info-text: #1f5fa8;
+  --success-bg: #e8f5e9;
+  --success-text: #1b5e20;
+  --neutral-bg: #eef2f6;
 }
 
 * {
@@ -14,7 +19,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: Roboto, 'Segoe UI', sans-serif;
   color: var(--text);
   background: var(--background);
 }
@@ -26,29 +31,8 @@ body {
   padding: 20px;
 }
 
-.btn {
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-
-select,
-input {
-  min-width: 180px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font: inherit;
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
