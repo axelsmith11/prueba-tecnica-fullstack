@@ -124,6 +124,21 @@
     </mat-menu>
   </ng-template>
 
+  <!-- Estado vacío compartido por la tabla y las tarjetas. -->
+  <ng-template #emptyState>
+    @if (loading()) {
+      Cargando…
+    } @else {
+      <p class="empty-title">{{ activeFilters().length > 0 ? 'No hay bonos con estos filtros' : 'Aún no hay bonos registrados' }}</p>
+      <div class="empty-actions">
+        @if (activeFilters().length > 0) {
+          <button matButton="outlined" type="button" (click)="clear()">Limpiar filtros</button>
+        }
+        <button matButton="filled" type="button" (click)="openRegister()">Registrar bono</button>
+      </div>
+    }
+  </ng-template>
+
   @if (compact()) {
     <ul class="bonus-cards" aria-label="Bonos">
       @for (bonus of page()?.data ?? []; track bonus.bonusId) {
@@ -160,7 +175,7 @@
           </div>
         </li>
       } @empty {
-        <li class="empty">{{ loading() ? 'Cargando…' : 'No hay bonos con estos filtros.' }}</li>
+        <li class="empty"><ng-container *ngTemplateOutlet="emptyState" /></li>
       }
     </ul>
   } @else {
@@ -225,7 +240,7 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         <tr class="mat-mdc-row" *matNoDataRow>
           <td class="empty" [attr.colspan]="displayedColumns.length">
-            {{ loading() ? 'Cargando…' : 'No hay bonos con estos filtros.' }}
+            <ng-container *ngTemplateOutlet="emptyState" />
           </td>
         </tr>
       </table>
