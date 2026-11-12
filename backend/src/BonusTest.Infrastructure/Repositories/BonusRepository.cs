@@ -51,22 +51,12 @@ public class BonusRepository(AppDbContext context) : IBonusRepository
 
     public void Add(Bonus bonus) => context.Bonuses.Add(bonus);
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: UniqueIndexViolation })
-        {
-            throw BonusErrors.DuplicateBonus();
-        }
-    }
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => SaveTranslatingErrorsAsync(cancellationToken);
 
     public async Task<IReadOnlyList<ProjectHours>> GetProjectHoursAsync(string departmentCode, int employeeNumber,
         CancellationToken cancellationToken) =>
         await context.EmployeeProjectHours.AsNoTracking()
-            .Where(x => x.DepartmentCode == departmentCode && x.EmployeeNumber == employeeNumber)
+            .Where(x => x.DepartmentCode == departmentCode && x.EmployeeNumber == employeeNumber && x.Hours > 0)
             .OrderBy(x => x.EmployeeProjectHoursId)
             .Select(x => new ProjectHours(x.ProjectName, x.Hours))
             .ToListAsync(cancellationToken);
@@ -76,8 +66,28 @@ public class BonusRepository(AppDbContext context) : IBonusRepository
         // Transacción explícita: el detalle y el paso a Pagado se confirman juntos o no se guarda nada.
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         context.BonusPaymentDetails.AddRange(details);
-        await context.SaveChangesAsync(cancellationToken);
+        await SaveTranslatingErrorsAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// BonusStateCode e IsDeleted son tokens de concurrencia: si otra petición ya cambió el bono, el UPDATE
+    /// afecta 0 filas y se informa como "no está Registrado" (evita pagar o anular dos veces).
+    /// </summary>
+    private async Task SaveTranslatingErrorsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw BonusErrors.BonusNotRegistered();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: UniqueIndexViolation })
+        {
+            throw BonusErrors.DuplicateBonus();
+        }
     }
 
     private static IQueryable<Bonus> ApplyFilter(IQueryable<Bonus> bonuses, BonusFilter filter)

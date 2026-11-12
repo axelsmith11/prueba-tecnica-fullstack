@@ -17,7 +17,8 @@ public class BonusConfiguration : IEntityTypeConfiguration<Bonus>
         builder.Property(x => x.DepartmentCode).HasColumnType("char(5)");
         builder.Property(x => x.Period).HasColumnType("char(7)");
         builder.Property(x => x.ReasonCode).HasColumnType("char(6)");
-        builder.Property(x => x.BonusStateCode).HasColumnType("char(4)");
+        builder.Property(x => x.BonusStateCode).HasColumnType("char(4)").IsConcurrencyToken();
+        builder.Property(x => x.IsDeleted).IsConcurrencyToken();
         builder.Property(x => x.CreatedBy).HasColumnType("varchar(50)");
         builder.Property(x => x.UpdatedBy).HasColumnType("varchar(50)");
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)");
