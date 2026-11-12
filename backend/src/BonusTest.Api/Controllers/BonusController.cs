@@ -17,6 +17,26 @@ public class BonusController(BonusService bonusService) : ControllerBase
     public async Task<IActionResult> Search([FromQuery] BonusFilter filter, CancellationToken cancellationToken) =>
         Ok(await bonusService.SearchAsync(filter, cancellationToken));
 
+    [ProducesResponseType(typeof(BonusSummaryDto), StatusCodes.Status200OK)]
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary([FromQuery] BonusFilter filter, CancellationToken cancellationToken) =>
+        Ok(await bonusService.GetSummaryAsync(filter, cancellationToken));
+
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, "text/csv")]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] BonusFilter filter, CancellationToken cancellationToken)
+    {
+        var file = await bonusService.ExportAsync(filter, cancellationToken);
+        return File(file.Content, "text/csv; charset=utf-8", file.FileName);
+    }
+
+    [ProducesResponseType(typeof(BonusPaymentDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [HttpGet("{bonusId:int}/payment-detail")]
+    public async Task<IActionResult> GetPaymentDetail(int bonusId, CancellationToken cancellationToken) =>
+        Ok(await bonusService.GetPaymentDetailAsync(bonusId, cancellationToken));
+
     [ProducesResponseType(typeof(EmployeeLookupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [HttpGet("employee/{departmentCode}/{employeeNumber:int}")]
