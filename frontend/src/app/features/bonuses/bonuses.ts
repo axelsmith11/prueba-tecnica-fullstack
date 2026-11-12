@@ -20,6 +20,7 @@ import { BonusApi } from '../../core/services/bonus-api';
 import { CatalogApi } from '../../core/services/catalog-api';
 import { Notification } from '../../core/services/notification';
 import { ConfirmDialogData, confirmAction } from '../../shared/confirm-dialog/confirm-dialog';
+import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dialog';
 
 /** Pantalla de bonos de desempeño: filtros, listado paginado en servidor y acciones por fila. */
 @Component({
@@ -93,6 +94,17 @@ export class Bonuses {
   protected clear(): void {
     this.filterForm.reset();
     this.search();
+  }
+
+  protected openRegister(): void {
+    this.dialog
+      .open<RegisterBonusDialog, void, boolean>(RegisterBonusDialog, { width: '720px', maxWidth: '95vw' })
+      .afterClosed()
+      .pipe(filter(Boolean))
+      .subscribe(() => {
+        this.notification.show('success', 'Bono registrado correctamente.');
+        this.reload(true);
+      });
   }
 
   protected changePage(event: PageEvent): void {

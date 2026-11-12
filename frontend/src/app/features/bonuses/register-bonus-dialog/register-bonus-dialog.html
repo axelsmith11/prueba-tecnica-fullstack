@@ -1,0 +1,120 @@
+<h2 mat-dialog-title>Registrar bono</h2>
+
+<mat-dialog-content>
+  <form class="search" [formGroup]="searchForm" (ngSubmit)="searchEmployee()">
+    <mat-form-field>
+      <mat-label>Área</mat-label>
+      <mat-select formControlName="departmentCode" required>
+        @for (department of departments(); track department.departmentCode) {
+          <mat-option [value]="department.departmentCode">{{ department.departmentName }}</mat-option>
+        }
+      </mat-select>
+      <mat-error>Selecciona el área</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>N.º de empleado</mat-label>
+      <input matInput type="number" min="1" formControlName="employeeNumber" required />
+      <mat-error>Ingresa un número de empleado válido</mat-error>
+    </mat-form-field>
+
+    <button matButton="tonal" type="submit" class="search-button" [disabled]="searching()">
+      <mat-icon>person_search</mat-icon>
+      Buscar
+    </button>
+  </form>
+
+  <div class="progress-slot">
+    @if (searching()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Buscando empleado" />
+    }
+  </div>
+
+  @if (employee(); as employee) {
+    <dl class="employee-card">
+      <div>
+        <dt>Empleado</dt>
+        <dd>{{ employee.fullName }}</dd>
+      </div>
+      <div>
+        <dt>Fecha de ingreso</dt>
+        <dd>{{ employee.hireDate | date: 'dd/MM/yyyy' }}</dd>
+      </div>
+      <div>
+        <dt>Sueldo mensual</dt>
+        <dd>{{ employee.monthlySalary | number: '1.2-2' }}</dd>
+      </div>
+      <div>
+        <dt>Retención</dt>
+        <dd>{{ employee.taxRate | number: '1.0-2' }} %</dd>
+      </div>
+    </dl>
+
+    <form id="bonus-form" class="bonus-form" [formGroup]="bonusForm" (ngSubmit)="save()">
+      <mat-form-field>
+        <mat-label>Periodo</mat-label>
+        <input matInput type="month" formControlName="period" [max]="maxPeriod" required />
+        @if (bonusForm.controls.period.hasError('maxPeriod')) {
+          <mat-error>No puede ser posterior a {{ maxPeriod }}</mat-error>
+        } @else {
+          <mat-error>Ingresa el periodo (YYYY-MM)</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-radio-group formControlName="bonusTypeId" aria-label="Tipo de bono" class="types">
+        @for (type of bonusTypes(); track type.bonusTypeId) {
+          <mat-radio-button [value]="type.bonusTypeId">{{ type.bonusTypeDescription }}</mat-radio-button>
+        }
+      </mat-radio-group>
+
+      <mat-form-field>
+        <mat-label>{{ valueLabel() }}</mat-label>
+        <input matInput type="number" min="0.01" step="0.01" formControlName="bonusValue" required />
+        @if (isPercentage()) {
+          <span matTextSuffix>%</span>
+        }
+        <mat-hint>Máximo {{ maxBonusValue() | number: '1.2-2' }}</mat-hint>
+        <mat-error>{{ bonusValueError() }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Motivo</mat-label>
+        <mat-select formControlName="reasonCode" required>
+          @for (reason of reasons(); track reason.reasonCode) {
+            <mat-option [value]="reason.reasonCode">{{ reason.reasonDescription }}</mat-option>
+          }
+        </mat-select>
+        <mat-error>Selecciona el motivo</mat-error>
+      </mat-form-field>
+    </form>
+
+    <section class="preview" aria-live="polite" aria-label="Vista previa del cálculo">
+      <div>
+        <span>Bruto</span>
+        <strong>{{ preview().gross | number: '1.2-2' }}</strong>
+      </div>
+      <div>
+        <span>Retención</span>
+        <strong>− {{ preview().tax | number: '1.2-2' }}</strong>
+      </div>
+      <div class="net">
+        <span>Neto a pagar</span>
+        <strong>{{ preview().net | number: '1.2-2' }}</strong>
+      </div>
+    </section>
+  } @else {
+    <p class="hint">Busca al empleado por área y número para registrar el bono.</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton type="button" mat-dialog-close>Cancelar</button>
+  <button
+    matButton="filled"
+    type="submit"
+    form="bonus-form"
+    [disabled]="!employee() || bonusForm.invalid || saving()"
+  >
+    {{ saving() ? 'Guardando…' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>
