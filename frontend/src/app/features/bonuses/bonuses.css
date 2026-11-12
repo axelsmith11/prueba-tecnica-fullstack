@@ -25,10 +25,17 @@
 }
 
 .filter-actions {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   min-height: 56px;
+}
+
+.filter-actions button {
+  white-space: nowrap;
 }
 
 .progress-slot {
@@ -48,8 +55,14 @@ table {
 }
 
 .mat-column-actions {
-  width: 192px;
+  width: 160px;
+  padding-inline: 8px;
   white-space: nowrap;
+}
+
+.mat-column-actions .mat-mdc-icon-button {
+  --mat-icon-button-state-layer-size: 36px;
+  padding: 6px;
 }
 
 .mat-column-period,
