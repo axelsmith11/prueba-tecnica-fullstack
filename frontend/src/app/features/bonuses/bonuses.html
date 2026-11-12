@@ -50,7 +50,7 @@
         Buscar
       </button>
       <button matButton="outlined" type="button" (click)="clear()">Limpiar</button>
-      <button matButton="outlined" type="button" (click)="exportCsv()" [disabled]="exporting()">
+      <button matButton="outlined" type="button" (click)="exportCsv()" [disabled]="exporting() || loading() || !page()">
         <mat-icon>download</mat-icon>
         {{ exporting() ? 'Exportando…' : 'Exportar CSV' }}
       </button>
