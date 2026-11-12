@@ -1,0 +1,2 @@
+# El script de inicialización corre en Linux: siempre con LF.
+*.sh text eol=lf
