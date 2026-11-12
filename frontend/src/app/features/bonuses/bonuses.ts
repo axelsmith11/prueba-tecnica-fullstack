@@ -22,6 +22,7 @@ import { Notification } from '../../core/services/notification';
 import { csvFileName, downloadFile } from '../../core/utils/download';
 import { ConfirmDialogData, confirmAction } from '../../shared/confirm-dialog/confirm-dialog';
 import { BonusSummaryCards } from './bonus-summary-cards/bonus-summary-cards';
+import { PaymentDetailDialog, PaymentDetailDialogData } from './payment-detail-dialog/payment-detail-dialog';
 import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dialog';
 
 /** Pantalla de bonos de desempeño: filtros, listado paginado en servidor y acciones por fila. */
@@ -132,6 +133,19 @@ export class Bonuses {
 
   protected isPercentage(bonus: BonusListItem): boolean {
     return bonus.bonusTypeId === BonusTypes.SalaryPercentage;
+  }
+
+  protected isPaid(bonus: BonusListItem): boolean {
+    return bonus.bonusStateCode === BonusStates.Paid;
+  }
+
+  protected showPaymentDetail(bonus: BonusListItem): void {
+    this.dialog.open<PaymentDetailDialog, PaymentDetailDialogData>(PaymentDetailDialog, {
+      data: { bonusId: bonus.bonusId, fullName: bonus.fullName, period: bonus.period },
+      width: '520px',
+      maxWidth: '95vw',
+      injector: this.injector,
+    });
   }
 
   protected cancel(bonus: BonusListItem): void {

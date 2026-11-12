@@ -98,6 +98,16 @@
           >
             <mat-icon>delete</mat-icon>
           </button>
+          <button
+            matIconButton
+            type="button"
+            matTooltip="Ver detalle del pago"
+            [attr.aria-label]="'Ver detalle del pago de ' + bonus.fullName + ' ' + bonus.period"
+            [disabled]="!isPaid(bonus)"
+            (click)="showPaymentDetail(bonus)"
+          >
+            <mat-icon>receipt_long</mat-icon>
+          </button>
         </td>
       </ng-container>
 
