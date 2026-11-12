@@ -14,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EMPTY, Observable, Subject, catchError, filter, finalize, map, noop, switchMap } from 'rxjs';
 import { BonusFilter, BonusListItem, BonusSummary, EMPTY_BONUS_FILTER, MAX_EXPORT_ROWS } from '../../core/models/bonus';
 import { BonusStates, BonusTypes, MasterStateCodes } from '../../core/models/catalog';
@@ -21,6 +22,7 @@ import { PagedResponse } from '../../core/models/paged-response';
 import { BonusApi } from '../../core/services/bonus-api';
 import { CatalogApi } from '../../core/services/catalog-api';
 import { Notification } from '../../core/services/notification';
+import { filterFromQueryParams, filterToQueryParams } from '../../core/utils/bonus-filter-url';
 import { csvFileName, downloadFile } from '../../core/utils/download';
 import { recentPeriods } from '../../core/utils/period';
 import { ConfirmDialogData, confirmAction } from '../../shared/confirm-dialog/confirm-dialog';
@@ -57,6 +59,8 @@ export class Bonuses {
   // Los diálogos se abren con el MatDialog raíz: se les pasa este injector para que vean los proveedores de la ruta.
   private readonly injector = inject(Injector);
   private readonly notification = inject(Notification);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly reload$ = new Subject<void>();
   private readonly summaryReload$ = new Subject<void>();
   private appliedFilter: BonusFilter = EMPTY_BONUS_FILTER;
@@ -87,6 +91,9 @@ export class Bonuses {
   });
 
   constructor() {
+    // El filtro de la URL (enlace compartido o recarga) se aplica antes de la primera carga.
+    this.appliedFilter = filterFromQueryParams(this.route.snapshot.queryParamMap);
+    this.filterForm.patchValue(this.appliedFilter);
     this.reload$
       .pipe(
         switchMap(() => {
@@ -114,6 +121,7 @@ export class Bonuses {
       return;
     }
     this.appliedFilter = this.filterForm.getRawValue();
+    this.syncUrl();
     this.reload(true);
   }
 
@@ -221,6 +229,14 @@ export class Bonuses {
     }
     this.reload$.next();
     this.summaryReload$.next();
+  }
+
+  private syncUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: filterToQueryParams(this.appliedFilter),
+      replaceUrl: true,
+    });
   }
 
   private runConfirmedAction(data: ConfirmDialogData, action: () => Observable<void>, successMessage: string): void {
