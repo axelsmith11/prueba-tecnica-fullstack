@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Node / Angular
+node_modules/
+.angular/
+
+# Herramientas locales
+.playwright-mcp/
+.superpowers/
+
+# Enunciado de la prueba (no es parte del entregable)
+*.pdf

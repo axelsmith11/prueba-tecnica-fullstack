@@ -1,0 +1,33 @@
+<section class="card">
+  <header class="card-header">
+    <h2>Bonos de desempeño</h2>
+    <button type="button" class="btn btn-primary" disabled>Nuevo registro</button>
+  </header>
+
+  <div class="filters">
+    <label>
+      Área
+      <select>
+        <option value="">Todas</option>
+        @for (department of departments(); track department.departmentCode) {
+          <option [value]="department.departmentCode">{{ department.departmentName }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Estado
+      <select>
+        <option value="">Todos</option>
+        @for (state of bonusStates(); track state.stateCode) {
+          <option [value]="state.stateCode">{{ state.stateDescription }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <p class="placeholder">
+    Los combos ya consumen <code>GET /api/v1/Catalog</code>. Implementa aquí el listado paginado,
+    las acciones por fila y el modal de registro descritos en el enunciado.
+  </p>
+</section>
