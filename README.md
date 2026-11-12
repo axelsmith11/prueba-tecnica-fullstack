@@ -72,18 +72,18 @@ El usuario que opera llega en el header `UserCode`. Los errores de negocio respo
 - **Dinero con `decimal` y redondeo `MidpointRounding.AwayFromZero`** (0.125 → 0.13). El redondeo bancario por defecto de .NET daría 0.12.
 - **Montos guardados al registrar** (`GrossAmount`, `TaxAmount`, `NetAmount`) junto con `TaxRateApplied`: el bono conserva lo calculado aunque luego cambien el sueldo o la tasa del empleado, y el listado no recalcula.
 - **Un bono activo por periodo, validado dos veces:** en el servicio (mensaje claro) y con el índice único filtrado `UX_Bonus_ActivePerPeriod` (`WHERE IsDeleted = 0 AND BonusStateCode <> '0203'`), que cubre registros concurrentes; esa violación también se traduce a 409.
+- **Tres índices en `Bonus`:** `UX_Bonus_ActivePerPeriod` (único, solo bonos activos), `IX_Bonus_Employee` (filtro por empleado en el listado, que incluye anulados y pagados) e `IX_Bonus_Period_State` (filtros por periodo y estado). Además, checks que limitan el estado a los de bono (`02xx`) y la retención a 0–100.
 - **Paginación en la base de datos:** EF Core traduce `Skip/Take` a `OFFSET/FETCH`; primero se filtra y cuenta, luego se une la página con los catálogos para devolver las descripciones.
 - **Tipos `char`/`varchar` mapeados en EF** para que los parámetros no se envíen como `nvarchar` y se usen los índices.
-- **Fecha actual vía `TimeProvider`** para probar la regla "periodo no posterior al mes actual" sin depender del reloj.
-- **Pago en una transacción explícita:** detalle por proyecto + paso a Pagado. Cada línea se redondea y el último proyecto recibe la diferencia para cuadrar exacto.
-- **Pago:** solo se reparten proyectos con horas > 0.
+- **Fecha actual vía `TimeProvider`** para probar la regla "periodo no posterior al mes actual" sin depender del reloj. El "mes actual" se evalúa con el reloj del servidor (hora local del servidor).
+- **Pago en una transacción explícita:** detalle por proyecto + paso a Pagado. Cada línea se redondea y el último proyecto recibe la diferencia para cuadrar exacto; solo se reparten proyectos con horas > 0.
 - **Concurrencia optimista:** `BonusStateCode` e `IsDeleted` son tokens de concurrencia en EF Core; si dos usuarios pagan, anulan o eliminan el mismo bono a la vez, el segundo recibe 409 en lugar de duplicar el pago.
-- **Front:** Angular Material (tabla, paginador, diálogos, formularios reactivos), estado con signals, `switchMap` para descartar respuestas de páginas antiguas. La vista previa replica la fórmula, pero el monto oficial lo calcula la API. El aviso global se muestra por encima del modal para que los 409 se vean.
+- **Front:** Angular Material (tabla, paginador, diálogos, formularios reactivos), estado con signals, `switchMap` para descartar respuestas de páginas antiguas. La vista previa replica la fórmula, pero el monto oficial lo calcula la API.
 - **Avisos sobre el modal:** Angular Material 22 abre los diálogos en la capa superior del navegador (Popover API); el aviso global también se muestra como popover para quedar encima del modal. Los avisos de éxito se cierran solos a los 4 segundos.
 
 ## Pruebas
 
-`backend/tests/BonusTest.UnitTests` (xUnit): 55 pruebas unitarias sobre cálculo y redondeo, transiciones de estado, reparto por proyecto, y validaciones de `BonusService` con un repositorio en memoria.
+`backend/tests/BonusTest.UnitTests` (xUnit): 58 pruebas unitarias sobre cálculo y redondeo, transiciones de estado, reparto por proyecto, y validaciones de `BonusService` con un repositorio en memoria.
 
 ## Pendientes / fuera de alcance
 
