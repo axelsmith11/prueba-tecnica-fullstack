@@ -1,0 +1,94 @@
+# Bonos de desempeño — Prueba técnica Full Stack
+
+Módulo de Recursos Humanos para registrar bonos de desempeño: se busca un empleado activo, se le registra un bono (monto fijo o porcentaje del sueldo) para un periodo, y el sistema calcula bruto, retención y neto. Desde el listado se puede pagar (con reparto por proyecto), anular y eliminar.
+
+| Capa | Tecnología |
+|---|---|
+| Base de datos | SQL Server 2019+ |
+| Backend | .NET 10, ASP.NET Core Web API, EF Core 10 |
+| Frontend | Angular 22 (standalone) + Angular Material 22 |
+| Pruebas | xUnit |
+
+## Cómo levantarlo
+
+### 1. Base de datos
+
+Ejecuta los scripts de `database/` en orden:
+
+1. `01_schema_seed.sql` — tablas base y datos de prueba (sin cambios).
+2. `02_bonus.sql` — tabla `Bonus` e índices.
+3. `03_bonus_payment_detail.sql` — detalle del pago por proyecto.
+
+Los scripts 02 y 03 son idempotentes. Si usas `sqlcmd`, agrega `-I` (los índices filtrados requieren `QUOTED_IDENTIFIER ON`; los scripts ya lo activan).
+
+**Sin SQL Server instalado (Docker):**
+```bash
+docker run -d --name bonustest-sql -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=BonusTest#2026" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+docker cp database/. bonustest-sql:/tmp/db
+docker exec bonustest-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "BonusTest#2026" -C -I -i /tmp/db/01_schema_seed.sql
+docker exec bonustest-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "BonusTest#2026" -C -I -i /tmp/db/02_bonus.sql
+docker exec bonustest-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "BonusTest#2026" -C -I -i /tmp/db/03_bonus_payment_detail.sql
+```
+(En Git Bash, antepone `MSYS_NO_PATHCONV=1` a los comandos `docker exec`/`docker cp`.)
+
+### 2. API
+
+`appsettings.Development.json` apunta a `Server=localhost` con autenticación de Windows. Para otra instancia (por ejemplo, Docker), sobrescribe la cadena con una variable de entorno:
+
+```bash
+export ConnectionStrings__BonusTest="Server=localhost,1433;Database=BonusTest;User Id=sa;Password=BonusTest#2026;TrustServerCertificate=True;"
+cd backend/src/BonusTest.Api
+dotnet run --launch-profile http
+```
+Swagger: http://localhost:5106/swagger
+
+Pruebas: `cd backend && dotnet test`
+
+### 3. Front
+
+```bash
+cd frontend
+npm ci
+npx ng serve
+```
+Pantalla: http://localhost:4200/bonuses
+
+## Endpoints
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/api/v1/Bonus?pageIndex&pageSize&departmentCode&employeeNumber&period&bonusStateCode` | 200 listado paginado |
+| GET | `/api/v1/Bonus/employee/{departmentCode}/{employeeNumber}` | 200 datos del empleado activo |
+| POST | `/api/v1/Bonus` | 201 `{ bonusId, grossAmount, taxAmount, netAmount }` |
+| PUT | `/api/v1/Bonus/{bonusId}/cancel` | 204 |
+| DELETE | `/api/v1/Bonus/{bonusId}` | 204 (eliminado lógico) |
+| POST | `/api/v1/Bonus/{bonusId}/pay` | 204 (extra 1) |
+
+El usuario que opera llega en el header `UserCode`. Los errores de negocio responden 409 con `{ code, description }`.
+
+## Decisiones técnicas
+
+- **Reglas en Domain y Application, no en el controlador.** `BonusCalculator` y `BonusDistributor` son funciones puras; la entidad `Bonus` solo cambia de estado con `Cancel`, `Delete` y `Pay`, que exigen el estado Registrado. `BonusService` aplica las validaciones que requieren datos (empleado activo, motivo activo, duplicados, periodo, límites del valor).
+- **Dinero con `decimal` y redondeo `MidpointRounding.AwayFromZero`** (0.125 → 0.13). El redondeo bancario por defecto de .NET daría 0.12.
+- **Montos guardados al registrar** (`GrossAmount`, `TaxAmount`, `NetAmount`) junto con `TaxRateApplied`: el bono conserva lo calculado aunque luego cambien el sueldo o la tasa del empleado, y el listado no recalcula.
+- **Un bono activo por periodo, validado dos veces:** en el servicio (mensaje claro) y con el índice único filtrado `UX_Bonus_ActivePerPeriod` (`WHERE IsDeleted = 0 AND BonusStateCode <> '0203'`), que cubre registros concurrentes; esa violación también se traduce a 409.
+- **Paginación en la base de datos:** EF Core traduce `Skip/Take` a `OFFSET/FETCH`; primero se filtra y cuenta, luego se une la página con los catálogos para devolver las descripciones.
+- **Tipos `char`/`varchar` mapeados en EF** para que los parámetros no se envíen como `nvarchar` y se usen los índices.
+- **Fecha actual vía `TimeProvider`** para probar la regla "periodo no posterior al mes actual" sin depender del reloj.
+- **Pago en una transacción explícita:** detalle por proyecto + paso a Pagado. Cada línea se redondea y el último proyecto recibe la diferencia para cuadrar exacto.
+- **Pago:** solo se reparten proyectos con horas > 0.
+- **Concurrencia optimista:** `BonusStateCode` e `IsDeleted` son tokens de concurrencia en EF Core; si dos usuarios pagan, anulan o eliminan el mismo bono a la vez, el segundo recibe 409 en lugar de duplicar el pago.
+- **Front:** Angular Material (tabla, paginador, diálogos, formularios reactivos), estado con signals, `switchMap` para descartar respuestas de páginas antiguas. La vista previa replica la fórmula, pero el monto oficial lo calcula la API. El aviso global se muestra por encima del modal para que los 409 se vean.
+- **Avisos sobre el modal:** Angular Material 22 abre los diálogos en la capa superior del navegador (Popover API); el aviso global también se muestra como popover para quedar encima del modal. Los avisos de éxito se cierran solos a los 4 segundos.
+
+## Pruebas
+
+`backend/tests/BonusTest.UnitTests` (xUnit): 55 pruebas unitarias sobre cálculo y redondeo, transiciones de estado, reparto por proyecto, y validaciones de `BonusService` con un repositorio en memoria.
+
+## Pendientes / fuera de alcance
+
+- Autenticación real (el usuario llega en el header `UserCode`).
+- Edición de bonos, reversión de pagos y consulta del detalle de pago en la pantalla.
+- Pruebas de integración de la API contra SQL Server y pruebas del front.
+- Prueba automatizada de concurrencia del pago (se verificó manualmente con peticiones simultáneas).
+- Vulnerabilidades reportadas por `npm audit` en dependencias de desarrollo del proyecto base, sin revisar.
