@@ -20,7 +20,9 @@ cp .env.example .env    # opcional: cambia la contraseña del SA (por defecto Bo
 docker compose up --build
 ```
 
-Antes de levantarlo, detén cualquier SQL Server, API o front local que use los puertos 4200 y 5106.
+El SQL Server de Docker no publica ningún puerto; antes de levantarlo, detén solo la API o el front locales que usen 5106 o 4200.
+
+En Mac con Apple Silicon, SQL Server corre emulado (activa Rosetta en Docker Desktop).
 
 | Servicio | Qué hace |
 |---|---|
@@ -85,7 +87,7 @@ Pantalla: http://localhost:4200/bonuses
 | GET | `/api/v1/Bonus/summary` | 200 `{ pendingCount, pendingNet, paidCount, paidNet, cancelledCount, committedGross, committedTax, committedNet }`. Mismos filtros que el listado. |
 | GET | `/api/v1/Bonus/export` | 200 CSV (`text/csv`, `bonos-AAAAMMDD.csv`). Mismos filtros. 409 `EXPORT_TOO_LARGE` si hay más de 10 000 filas. |
 | GET | `/api/v1/Bonus/employee/{departmentCode}/{employeeNumber}` | 200 datos del empleado activo |
-| GET | `/api/v1/Bonus/{bonusId}/payment-detail` | 200 líneas `{ project, hours, amount }`. 409 `BONUS_NOT_PAID` o `BONUS_NOT_FOUND`. |
+| GET | `/api/v1/Bonus/{bonusId}/payment-detail` | 200 `{ bonusId, grossAmount, lines: [{ projectName, hours, amount }] }`. 409 `BONUS_NOT_PAID` o `BONUS_NOT_FOUND`. |
 | POST | `/api/v1/Bonus` | 201 `{ bonusId, grossAmount, taxAmount, netAmount }` |
 | PUT | `/api/v1/Bonus/{bonusId}/cancel` | 204 |
 | DELETE | `/api/v1/Bonus/{bonusId}` | 204 (eliminado lógico) |
