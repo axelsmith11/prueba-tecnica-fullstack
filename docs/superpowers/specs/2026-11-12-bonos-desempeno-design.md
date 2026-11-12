@@ -61,9 +61,12 @@ CREATE UNIQUE INDEX UX_Bonus_ActivePerPeriod
 CREATE INDEX IX_Bonus_Period_State
     ON dbo.Bonus (Period, BonusStateCode)
     WHERE IsDeleted = 0;
+
+-- Listado filtrado por empleado (incluye anulados/pagados): el índice único solo cubre bonos activos.
+CREATE INDEX IX_Bonus_Employee ON dbo.Bonus (DepartmentCode, EmployeeNumber, Period) WHERE IsDeleted = 0;
 ```
 
-El filtro por empleado usa el índice único anterior (su prefijo es `DepartmentCode, EmployeeNumber`).
+El filtro por empleado usa `IX_Bonus_Employee`: el índice único está filtrado por estado y no sirve para listar anulados o pagados.
 
 ### `database/03_bonus_payment_detail.sql` (extra 1)
 

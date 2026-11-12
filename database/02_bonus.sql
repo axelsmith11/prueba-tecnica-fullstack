@@ -36,10 +36,19 @@ BEGIN
         CONSTRAINT CK_Bonus_Period      CHECK (Period LIKE '[12][0-9][0-9][0-9]-[01][0-9]'
                                                AND SUBSTRING(Period, 6, 2) BETWEEN '01' AND '12'),
         CONSTRAINT CK_Bonus_BonusValue  CHECK (BonusValue > 0),
+        CONSTRAINT CK_Bonus_State       CHECK (BonusStateCode LIKE '02__'),  -- solo estados de bono (no de empleado)
+        CONSTRAINT CK_Bonus_TaxRateApplied CHECK (TaxRateApplied BETWEEN 0 AND 100),
         CONSTRAINT CK_Bonus_Amounts     CHECK (GrossAmount > 0 AND TaxAmount >= 0
                                                AND NetAmount = GrossAmount - TaxAmount)
     );
 END
+GO
+
+-- La tabla puede existir de una ejecución anterior: se agregan los checks nuevos si faltan.
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Bonus_State' AND parent_object_id = OBJECT_ID('dbo.Bonus'))
+    ALTER TABLE dbo.Bonus ADD CONSTRAINT CK_Bonus_State CHECK (BonusStateCode LIKE '02__');
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Bonus_TaxRateApplied' AND parent_object_id = OBJECT_ID('dbo.Bonus'))
+    ALTER TABLE dbo.Bonus ADD CONSTRAINT CK_Bonus_TaxRateApplied CHECK (TaxRateApplied BETWEEN 0 AND 100);
 GO
 
 -- Regla: un solo bono activo (no anulado y no eliminado) por empleado y periodo.
@@ -51,9 +60,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Bonus_ActivePerPeriod'
 GO
 
 -- Filtros del listado por periodo y estado sobre los registros visibles.
--- El filtro por área + número usa el prefijo del índice anterior.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Bonus_Period_State' AND object_id = OBJECT_ID('dbo.Bonus'))
     CREATE INDEX IX_Bonus_Period_State
         ON dbo.Bonus (Period, BonusStateCode)
         WHERE IsDeleted = 0;
+GO
+
+-- Listado filtrado por empleado (incluye anulados/pagados): el índice único solo cubre bonos activos.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Bonus_Employee' AND object_id = OBJECT_ID('dbo.Bonus'))
+    CREATE INDEX IX_Bonus_Employee ON dbo.Bonus (DepartmentCode, EmployeeNumber, Period) WHERE IsDeleted = 0;
 GO
