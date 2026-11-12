@@ -3,6 +3,7 @@ name: bonustest
 services:
   sql:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-BonusTest#2026}"
@@ -15,6 +16,7 @@ services:
 
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
     depends_on:
       sql:
         condition: service_healthy
@@ -33,6 +35,7 @@ services:
         condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      TZ: America/Lima
       ConnectionStrings__BonusTest: "Server=sql;Database=BonusTest;User Id=sa;Password=${MSSQL_SA_PASSWORD:-BonusTest#2026};TrustServerCertificate=True;"
     ports:
       - "5106:8080"
