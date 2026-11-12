@@ -88,8 +88,9 @@ Los scripts son idempotentes (`IF OBJECT_ID(...) IS NULL`).
   - `static Bonus Create(Employee employee, string period, int bonusTypeId, decimal bonusValue, string reasonCode, string userCode, DateTime now)` → calcula montos, estado `0201`, auditoría de creación.
   - `Cancel(userCode, now)`: requiere `0201`, pasa a `0203`.
   - `Delete(userCode, now)`: requiere `0201`, `IsDeleted = true`.
-  - `MarkAsPaid(userCode, now)`: requiere `0201`, pasa a `0202`.
-  - Transición inválida → `BusinessException("BONUS_NOT_REGISTERED", ...)`.
+  - `Pay(projects, userCode, now)`: requiere `0201`, reparte el bruto con `BonusDistributor`, pasa a `0202` y devuelve el detalle.
+  - Transición inválida → `BonusErrors.BonusNotRegistered()`.
+- `Exceptions/BonusErrors.cs`: fábrica de las `BusinessException` del módulo (códigos de la tabla de la sección 5), compartida por Domain, Application e Infrastructure.
 - `Entities/BonusPaymentDetail.cs`.
 - `Services/BonusCalculator.cs` (estático):
   - `Bruto = tipo 1 ? valor : Round(sueldo × valor / 100)`
@@ -103,9 +104,10 @@ Los scripts son idempotentes (`IF OBJECT_ID(...) IS NULL`).
 - DTOs:
   - `BonusFilter : PaginationRequest` — `DepartmentCode?`, `EmployeeNumber?`, `Period?`, `BonusStateCode?`.
   - `BonusListItemDto` — `BonusId, BonusStateCode, StateDescription, Period, DepartmentCode, DepartmentName, EmployeeNumber, FullName, BonusTypeId, BonusTypeDescription, BonusValue, ReasonDescription, GrossAmount, TaxAmount, NetAmount`.
-  - `EmployeeLookupDto` — `DepartmentCode, DepartmentName, EmployeeNumber, FullName, HireDate, MonthlySalary, TaxRate`.
+  - `EmployeeLookupDto` — `DepartmentCode, EmployeeNumber, FullName, HireDate, MonthlySalary, TaxRate` (el nombre del área lo tiene el front en el catálogo).
+  - `RegisteredBonusDto` — `BonusId, GrossAmount, TaxAmount, NetAmount`.
   - `RegisterBonusRequest` — `DepartmentCode, EmployeeNumber, Period, BonusTypeId, BonusValue, ReasonCode`.
-- `IBonusRepository`: `GetPagedAsync`, `GetEmployeeAsync`, `IsReasonActiveAsync`, `BonusTypeExistsAsync`, `HasActiveBonusAsync`, `GetByIdAsync`, `GetProjectHoursAsync`, `Add`, `SaveChangesAsync`, `SavePaymentAsync` (transacción).
+- `IBonusRepository`: `GetPagedAsync`, `GetEmployeeAsync`, `IsReasonActiveAsync`, `BonusTypeExistsAsync`, `HasActiveBonusAsync`, `GetByIdAsync`, `GetProjectHoursAsync`, `Add`, `SaveChangesAsync` (traduce la violación del índice único a `DUPLICATE_BONUS`), `SavePaymentAsync` (transacción).
 - `BonusService`:
   - `SearchAsync(filter)` → `PagedResponse<BonusListItemDto>`.
   - `GetActiveEmployeeAsync(departmentCode, employeeNumber)`.
@@ -144,7 +146,7 @@ Los scripts son idempotentes (`IF OBJECT_ID(...) IS NULL`).
 |---|---|---|
 | GET | `/api/v1/Bonus?pageIndex&pageSize&departmentCode&employeeNumber&period&bonusStateCode` | 200 `PagedResponse<BonusListItemDto>` |
 | GET | `/api/v1/Bonus/employee/{departmentCode}/{employeeNumber}` | 200 `EmployeeLookupDto` |
-| POST | `/api/v1/Bonus` | 201 `BonusListItemDto` |
+| POST | `/api/v1/Bonus` | 201 `RegisteredBonusDto` |
 | PUT | `/api/v1/Bonus/{bonusId}/cancel` | 204 |
 | DELETE | `/api/v1/Bonus/{bonusId}` | 204 |
 | POST | `/api/v1/Bonus/{bonusId}/pay` | 204 |
@@ -170,7 +172,9 @@ Los scripts son idempotentes (`IF OBJECT_ID(...) IS NULL`).
 
 ## 9. Pruebas y verificación
 
-- `backend/tests/BonusTest.Domain.Tests` (xUnit): ejemplo del enunciado (500/40/460), monto fijo, redondeo medio hacia arriba, retención 0 %, transiciones válidas e inválidas, reparto con 1, 2 y 3 proyectos (suma exacta; TECH1-102 bruto 300 → 135/105/60).
+- `backend/tests/BonusTest.UnitTests` (xUnit):
+  - Domain: ejemplo del enunciado (500/40/460), monto fijo, redondeo medio hacia arriba, retención 0 %, transiciones válidas e inválidas, reparto con 1, 2 y 3 proyectos (suma exacta; TECH1-102 bruto 300 → 135/105/60).
+  - Application: validaciones de `BonusService` con un repositorio en memoria y un `TimeProvider` fijo.
 - `dotnet build`, `dotnet test`, `ng build` sin errores.
 - Humo con `curl` de los 6 endpoints y los 409 principales.
 - Navegador (Playwright): registrar, paginar (> 10 bonos), filtrar, anular, eliminar, pagar; capturas escritorio y móvil.
