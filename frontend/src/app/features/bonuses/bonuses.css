@@ -62,6 +62,7 @@ table {
 
 .mat-column-actions .mat-mdc-icon-button {
   --mat-icon-button-state-layer-size: 36px;
+  --mat-icon-button-touch-target-size: 36px;
   padding: 6px;
 }
 
