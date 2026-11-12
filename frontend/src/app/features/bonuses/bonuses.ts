@@ -1,9 +1,10 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { DecimalPipe, NgTemplateOutlet, formatNumber } from '@angular/common';
-import { Component, Injector, inject, signal } from '@angular/core';
+import { Component, Injector, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -39,6 +40,7 @@ import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dial
     ReactiveFormsModule,
     BonusSummaryCards,
     MatButtonModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -63,7 +65,7 @@ export class Bonuses {
   private readonly route = inject(ActivatedRoute);
   private readonly reload$ = new Subject<void>();
   private readonly summaryReload$ = new Subject<void>();
-  private appliedFilter: BonusFilter = EMPTY_BONUS_FILTER;
+  private readonly appliedFilter = signal<BonusFilter>(EMPTY_BONUS_FILTER);
 
   protected readonly pageSize = 10;
   protected readonly displayedColumns = [
@@ -90,15 +92,37 @@ export class Bonuses {
     bonusStateCode: [''],
   });
 
+  /** Chips de los filtros aplicados (con nombres legibles; si el catálogo no lo conoce, el código). */
+  protected readonly activeFilters = computed(() => {
+    const applied = this.appliedFilter();
+    const chips: { key: keyof BonusFilter; label: string }[] = [];
+    if (applied.departmentCode) {
+      const name = this.departments().find((d) => d.departmentCode === applied.departmentCode)?.departmentName;
+      chips.push({ key: 'departmentCode', label: `Área: ${name ?? applied.departmentCode}` });
+    }
+    if (applied.employeeNumber !== null) {
+      chips.push({ key: 'employeeNumber', label: `N.º empleado: ${applied.employeeNumber}` });
+    }
+    if (applied.period) {
+      const label = this.periodOptions.find((p) => p.value === applied.period)?.label;
+      chips.push({ key: 'period', label: `Periodo: ${label ?? applied.period}` });
+    }
+    if (applied.bonusStateCode) {
+      const name = this.bonusStates().find((s) => s.stateCode === applied.bonusStateCode)?.stateDescription;
+      chips.push({ key: 'bonusStateCode', label: `Estado: ${name ?? applied.bonusStateCode}` });
+    }
+    return chips;
+  });
+
   constructor() {
     // El filtro de la URL (enlace compartido o recarga) se aplica antes de la primera carga.
-    this.appliedFilter = filterFromQueryParams(this.route.snapshot.queryParamMap);
-    this.filterForm.patchValue(this.appliedFilter);
+    this.appliedFilter.set(filterFromQueryParams(this.route.snapshot.queryParamMap));
+    this.filterForm.patchValue(this.appliedFilter());
     this.reload$
       .pipe(
         switchMap(() => {
           this.loading.set(true);
-          return this.bonusApi.search(this.appliedFilter, this.pageIndex() + 1, this.pageSize).pipe(
+          return this.bonusApi.search(this.appliedFilter(), this.pageIndex() + 1, this.pageSize).pipe(
             catchError(() => EMPTY), // el interceptor ya mostró el error
             finalize(() => this.loading.set(false)),
           );
@@ -108,7 +132,7 @@ export class Bonuses {
       .subscribe((response) => this.showPage(response));
     this.summaryReload$
       .pipe(
-        switchMap(() => this.bonusApi.summary(this.appliedFilter).pipe(catchError(() => EMPTY))),
+        switchMap(() => this.bonusApi.summary(this.appliedFilter()).pipe(catchError(() => EMPTY))),
         takeUntilDestroyed(),
       )
       .subscribe((summary) => this.summary.set(summary));
@@ -120,7 +144,15 @@ export class Bonuses {
       this.filterForm.markAllAsTouched();
       return;
     }
-    this.appliedFilter = this.filterForm.getRawValue();
+    this.appliedFilter.set(this.filterForm.getRawValue());
+    this.syncUrl();
+    this.reload(true);
+  }
+
+  /** Quita un filtro aplicado (chip): mismo camino que Buscar, desde la página 1. */
+  protected removeFilter(key: keyof BonusFilter): void {
+    this.filterForm.controls[key].reset();
+    this.appliedFilter.update((filter) => ({ ...filter, [key]: EMPTY_BONUS_FILTER[key] }));
     this.syncUrl();
     this.reload(true);
   }
@@ -218,7 +250,7 @@ export class Bonuses {
     }
     this.exporting.set(true);
     this.bonusApi
-      .export(this.appliedFilter)
+      .export(this.appliedFilter())
       .pipe(finalize(() => this.exporting.set(false)))
       .subscribe({ next: (file) => downloadFile(file, csvFileName()), error: noop });
   }
@@ -234,7 +266,7 @@ export class Bonuses {
   private syncUrl(): void {
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: filterToQueryParams(this.appliedFilter),
+      queryParams: filterToQueryParams(this.appliedFilter()),
       replaceUrl: true,
     });
   }

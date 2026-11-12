@@ -62,6 +62,19 @@
     </div>
   </form>
 
+  @if (activeFilters().length > 0) {
+    <mat-chip-set class="active-filters" aria-label="Filtros aplicados">
+      @for (chip of activeFilters(); track chip.key) {
+        <mat-chip (removed)="removeFilter(chip.key)">
+          {{ chip.label }}
+          <button matChipRemove type="button" [attr.aria-label]="'Quitar filtro ' + chip.label">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+  }
+
   <div class="progress-slot">
     @if (loading()) {
       <mat-progress-bar mode="indeterminate" aria-label="Cargando bonos" />

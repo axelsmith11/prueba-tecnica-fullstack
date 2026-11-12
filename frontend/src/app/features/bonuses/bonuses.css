@@ -38,6 +38,10 @@
   white-space: nowrap;
 }
 
+.active-filters {
+  margin-top: 8px;
+}
+
 .progress-slot {
   height: 4px;
   margin: 12px 0 8px;
