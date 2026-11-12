@@ -43,4 +43,10 @@ public static class BonusErrors
 
     public static BusinessException EmployeeWithoutProjects() =>
         new("EMPLOYEE_WITHOUT_PROJECTS", "El empleado no tiene horas por proyecto para distribuir el bono.");
+
+    public static BusinessException BonusNotPaid() =>
+        new("BONUS_NOT_PAID", "El bono aún no ha sido pagado; no tiene detalle por proyecto.");
+
+    public static BusinessException ExportTooLarge() =>
+        new("EXPORT_TOO_LARGE", "Hay más de 10 000 bonos con estos filtros; acota la búsqueda para exportar.");
 }
