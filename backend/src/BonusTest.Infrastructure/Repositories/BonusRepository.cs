@@ -17,7 +17,7 @@ public class BonusRepository(AppDbContext context) : IBonusRepository
 
     public async Task<PagedResponse<BonusListItemDto>> GetPagedAsync(BonusFilter filter, CancellationToken cancellationToken)
     {
-        var bonuses = ApplyFilter(context.Bonuses.AsNoTracking().Where(x => !x.IsDeleted), filter);
+        var bonuses = VisibleBonuses(filter);
 
         var totalRecords = await bonuses.CountAsync(cancellationToken);
         var page = bonuses
@@ -89,6 +89,27 @@ public class BonusRepository(AppDbContext context) : IBonusRepository
             throw BonusErrors.DuplicateBonus();
         }
     }
+
+    /// <summary>Bonos no eliminados que cumplen el filtro, sin seguimiento (base de listado, resumen y exportación).</summary>
+    private IQueryable<Bonus> VisibleBonuses(BonusFilter filter) =>
+        ApplyFilter(context.Bonuses.AsNoTracking().Where(x => !x.IsDeleted), filter);
+
+    public async Task<IReadOnlyList<BonusStateTotals>> GetStateTotalsAsync(BonusFilter filter, CancellationToken cancellationToken) =>
+        await VisibleBonuses(filter)
+            .GroupBy(x => x.BonusStateCode)
+            .Select(g => new BonusStateTotals(g.Key, g.Count(), g.Sum(x => x.GrossAmount), g.Sum(x => x.TaxAmount), g.Sum(x => x.NetAmount)))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<BonusListItemDto>> GetForExportAsync(BonusFilter filter, int maxRows,
+        CancellationToken cancellationToken) =>
+        await ToListItems(VisibleBonuses(filter).OrderByDescending(x => x.BonusId).Take(maxRows)).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<PaymentLineDto>> GetPaymentLinesAsync(int bonusId, CancellationToken cancellationToken) =>
+        await context.BonusPaymentDetails.AsNoTracking()
+            .Where(x => x.BonusId == bonusId)
+            .OrderBy(x => x.BonusPaymentDetailId)
+            .Select(x => new PaymentLineDto(x.ProjectName, x.Hours, x.Amount))
+            .ToListAsync(cancellationToken);
 
     private static IQueryable<Bonus> ApplyFilter(IQueryable<Bonus> bonuses, BonusFilter filter)
     {
