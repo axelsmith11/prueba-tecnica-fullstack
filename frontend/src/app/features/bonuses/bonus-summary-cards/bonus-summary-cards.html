@@ -1,0 +1,28 @@
+<section class="summary" aria-label="Resumen de bonos con los filtros aplicados">
+  @if (summary(); as totals) {
+    <article class="tile">
+      <span class="label">Por pagar</span>
+      <strong class="value">{{ totals.pendingNet | number: '1.2-2' }}</strong>
+      <span class="hint">{{ totals.pendingCount }} {{ totals.pendingCount === 1 ? 'bono registrado' : 'bonos registrados' }}</span>
+    </article>
+    <article class="tile">
+      <span class="label">Pagado</span>
+      <strong class="value">{{ totals.paidNet | number: '1.2-2' }}</strong>
+      <span class="hint">{{ totals.paidCount }} {{ totals.paidCount === 1 ? 'bono pagado' : 'bonos pagados' }}</span>
+    </article>
+    <article class="tile">
+      <span class="label">Anulados</span>
+      <strong class="value">{{ totals.cancelledCount }}</strong>
+      <span class="hint">No suman a los montos</span>
+    </article>
+    <article class="tile tile-total">
+      <span class="label">Total comprometido (neto)</span>
+      <strong class="value">{{ totals.committedNet | number: '1.2-2' }}</strong>
+      <span class="hint">Bruto {{ totals.committedGross | number: '1.2-2' }} · Retención {{ totals.committedTax | number: '1.2-2' }}</span>
+    </article>
+  } @else {
+    @for (placeholder of placeholders; track placeholder) {
+      <article class="tile skeleton" aria-hidden="true"></article>
+    }
+  }
+</section>

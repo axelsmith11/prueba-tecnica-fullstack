@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import {
   BonusFilter,
   BonusListItem,
+  BonusPaymentDetail,
+  BonusSummary,
   EmployeeLookup,
   RegisterBonusRequest,
   RegisteredBonus,
@@ -17,12 +19,20 @@ export class BonusApi {
   private readonly baseUrl = `${environment.apiUrl}/Bonus`;
 
   search(filter: BonusFilter, pageIndex: number, pageSize: number): Observable<PagedResponse<BonusListItem>> {
-    let params = new HttpParams().set('pageIndex', pageIndex).set('pageSize', pageSize);
-    if (filter.departmentCode) params = params.set('departmentCode', filter.departmentCode);
-    if (filter.employeeNumber !== null) params = params.set('employeeNumber', filter.employeeNumber);
-    if (filter.period) params = params.set('period', filter.period);
-    if (filter.bonusStateCode) params = params.set('bonusStateCode', filter.bonusStateCode);
+    const params = this.filterParams(filter).set('pageIndex', pageIndex).set('pageSize', pageSize);
     return this.http.get<PagedResponse<BonusListItem>>(this.baseUrl, { params });
+  }
+
+  summary(filter: BonusFilter): Observable<BonusSummary> {
+    return this.http.get<BonusSummary>(`${this.baseUrl}/summary`, { params: this.filterParams(filter) });
+  }
+
+  export(filter: BonusFilter): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/export`, { params: this.filterParams(filter), responseType: 'blob' });
+  }
+
+  paymentDetail(bonusId: number): Observable<BonusPaymentDetail> {
+    return this.http.get<BonusPaymentDetail>(`${this.baseUrl}/${bonusId}/payment-detail`);
   }
 
   getEmployee(departmentCode: string, employeeNumber: number): Observable<EmployeeLookup> {
@@ -45,5 +55,15 @@ export class BonusApi {
 
   pay(bonusId: number): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${bonusId}/pay`, null);
+  }
+
+  /** Filtros opcionales compartidos por listado, resumen y exportación. */
+  private filterParams(filter: BonusFilter): HttpParams {
+    let params = new HttpParams();
+    if (filter.departmentCode) params = params.set('departmentCode', filter.departmentCode);
+    if (filter.employeeNumber !== null) params = params.set('employeeNumber', filter.employeeNumber);
+    if (filter.period) params = params.set('period', filter.period);
+    if (filter.bonusStateCode) params = params.set('bonusStateCode', filter.bonusStateCode);
+    return params;
   }
 }

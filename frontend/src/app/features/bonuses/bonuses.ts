@@ -13,13 +13,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EMPTY, Observable, Subject, catchError, filter, finalize, noop, switchMap } from 'rxjs';
-import { BonusFilter, BonusListItem, EMPTY_BONUS_FILTER } from '../../core/models/bonus';
+import { BonusFilter, BonusListItem, BonusSummary, EMPTY_BONUS_FILTER, MAX_EXPORT_ROWS } from '../../core/models/bonus';
 import { BonusStates, BonusTypes, MasterStateCodes } from '../../core/models/catalog';
 import { PagedResponse } from '../../core/models/paged-response';
 import { BonusApi } from '../../core/services/bonus-api';
 import { CatalogApi } from '../../core/services/catalog-api';
 import { Notification } from '../../core/services/notification';
+import { csvFileName, downloadFile } from '../../core/utils/download';
 import { ConfirmDialogData, confirmAction } from '../../shared/confirm-dialog/confirm-dialog';
+import { BonusSummaryCards } from './bonus-summary-cards/bonus-summary-cards';
 import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dialog';
 
 /** Pantalla de bonos de desempeño: filtros, listado paginado en servidor y acciones por fila. */
@@ -28,6 +30,7 @@ import { RegisterBonusDialog } from './register-bonus-dialog/register-bonus-dial
   imports: [
     DecimalPipe,
     ReactiveFormsModule,
+    BonusSummaryCards,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -49,6 +52,7 @@ export class Bonuses {
   private readonly injector = inject(Injector);
   private readonly notification = inject(Notification);
   private readonly reload$ = new Subject<void>();
+  private readonly summaryReload$ = new Subject<void>();
   private appliedFilter: BonusFilter = EMPTY_BONUS_FILTER;
 
   protected readonly pageSize = 10;
@@ -60,6 +64,8 @@ export class Bonuses {
   protected readonly loading = signal(false);
   protected readonly pageIndex = signal(0);
   protected readonly page = signal<PagedResponse<BonusListItem> | null>(null);
+  protected readonly summary = signal<BonusSummary | null>(null);
+  protected readonly exporting = signal(false);
 
   protected readonly filterForm = inject(NonNullableFormBuilder).group({
     departmentCode: [''],
@@ -81,7 +87,13 @@ export class Bonuses {
         takeUntilDestroyed(),
       )
       .subscribe((response) => this.showPage(response));
-    this.reload$.next();
+    this.summaryReload$
+      .pipe(
+        switchMap(() => this.bonusApi.summary(this.appliedFilter).pipe(catchError(() => EMPTY))),
+        takeUntilDestroyed(),
+      )
+      .subscribe((summary) => this.summary.set(summary));
+    this.reload(false);
   }
 
   protected search(): void {
@@ -159,11 +171,29 @@ export class Bonuses {
     );
   }
 
+  protected exportCsv(): void {
+    const total = this.page()?.totalRecords ?? 0;
+    if (total === 0) {
+      this.notification.show('warning', 'No hay bonos para exportar con estos filtros.');
+      return;
+    }
+    if (total > MAX_EXPORT_ROWS) {
+      this.notification.show('warning', 'Hay más de 10 000 bonos con estos filtros; acota la búsqueda para exportar.');
+      return;
+    }
+    this.exporting.set(true);
+    this.bonusApi
+      .export(this.appliedFilter)
+      .pipe(finalize(() => this.exporting.set(false)))
+      .subscribe({ next: (file) => downloadFile(file, csvFileName()), error: noop });
+  }
+
   protected reload(resetPage: boolean): void {
     if (resetPage) {
       this.pageIndex.set(0);
     }
     this.reload$.next();
+    this.summaryReload$.next();
   }
 
   private runConfirmedAction(data: ConfirmDialogData, action: () => Observable<void>, successMessage: string): void {

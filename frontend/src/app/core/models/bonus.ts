@@ -60,3 +60,29 @@ export interface BonusAmounts {
   tax: number;
   net: number;
 }
+
+export interface BonusSummary {
+  pendingCount: number;
+  pendingNet: number;
+  paidCount: number;
+  paidNet: number;
+  cancelledCount: number;
+  committedGross: number;
+  committedTax: number;
+  committedNet: number;
+}
+
+export interface PaymentLine {
+  projectName: string;
+  hours: number;
+  amount: number;
+}
+
+export interface BonusPaymentDetail {
+  bonusId: number;
+  grossAmount: number;
+  lines: PaymentLine[];
+}
+
+/** Debe coincidir con BonusService.MaxExportRows en la API. */
+export const MAX_EXPORT_ROWS = 10_000;

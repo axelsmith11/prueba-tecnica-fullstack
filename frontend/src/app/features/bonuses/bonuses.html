@@ -2,13 +2,15 @@
   <header class="card-header">
     <div>
       <h2>Bonos de desempeño</h2>
-      <p class="subtitle">Registra, paga, anula y elimina bonos por periodo.</p>
+      <p class="subtitle">Registra, paga, anula, elimina y exporta bonos por periodo.</p>
     </div>
     <button matButton="filled" type="button" (click)="openRegister()">
       <mat-icon>add</mat-icon>
       Nuevo registro
     </button>
   </header>
+
+  <app-bonus-summary-cards [summary]="summary()" />
 
   <form class="filters" [formGroup]="filterForm" (ngSubmit)="search()">
     <mat-form-field>
@@ -48,6 +50,10 @@
         Buscar
       </button>
       <button matButton="outlined" type="button" (click)="clear()">Limpiar</button>
+      <button matButton="outlined" type="button" (click)="exportCsv()" [disabled]="exporting()">
+        <mat-icon>download</mat-icon>
+        {{ exporting() ? 'Exportando…' : 'Exportar CSV' }}
+      </button>
     </div>
   </form>
 
