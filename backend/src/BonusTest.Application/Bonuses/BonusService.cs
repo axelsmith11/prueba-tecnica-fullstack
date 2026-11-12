@@ -16,13 +16,12 @@ public class BonusService(IBonusRepository repository, TimeProvider timeProvider
 {
     private const string PeriodFormat = "yyyy-MM";
     private const decimal MaxPercentage = 100m;
+    public const int MaxExportRows = 10_000;
 
     private DateTime Now => timeProvider.GetLocalNow().DateTime;
 
     public Task<PagedResponse<BonusListItemDto>> SearchAsync(BonusFilter filter, CancellationToken cancellationToken) =>
         repository.GetPagedAsync(filter, cancellationToken);
-
-    public const int MaxExportRows = 10_000;
 
     public async Task<BonusSummaryDto> GetSummaryAsync(BonusFilter filter, CancellationToken cancellationToken) =>
         BonusSummaryCalculator.Build(await repository.GetStateTotalsAsync(filter, cancellationToken));
