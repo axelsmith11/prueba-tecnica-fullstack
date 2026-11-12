@@ -19,7 +19,7 @@
 - El front no maneja errores HTTP en componentes: el interceptor ya los muestra. En `subscribe` usar `error: noop` solo para evitar errores no controlados en consola.
 - Usuario operador: header `UserCode` (el interceptor del front ya lo envía como `candidato`).
 - Commits convencionales en español, terminando con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- Rutas relativas a la raíz del repo: `c:\Users\DELL\OneDrive\Documentos\GitHub\Prueba Tecnica\Prueba Tecnica`.
+- Todas las rutas son relativas a la raíz del repositorio.
 
 ## Entorno local (leer antes de empezar)
 

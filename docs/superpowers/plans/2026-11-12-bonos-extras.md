@@ -22,7 +22,7 @@
 
 ## Entorno local
 
-- Raíz del repo: `c:\Users\DELL\OneDrive\Documentos\GitHub\Prueba Tecnica\Prueba Tecnica`, rama `feat/bonos-desempeno`.
+- Rutas relativas a la raíz del repositorio; rama `feat/bonos-desempeno`.
 - `dotnet` fuera del PATH: `export PATH="/c/Program Files/dotnet:$PATH"`. Tras compilar: `dotnet build-server shutdown` (máquina con poca memoria).
 - La API corre en segundo plano en :5106 y bloquea los DLL: detenerla con `powershell -c "Stop-Process -Name BonusTest.Api -Force -ErrorAction SilentlyContinue"` antes de compilar y relanzarla después (en segundo plano):
   `export PATH="/c/Program Files/dotnet:$PATH"; export ConnectionStrings__BonusTest='Server=localhost,1433;Database=BonusTest;User Id=sa;Password=BonusTest#2026;TrustServerCertificate=True;'; cd backend/src/BonusTest.Api && dotnet run --no-build --launch-profile http`
