@@ -71,6 +71,16 @@ public class BonusService(IBonusRepository repository, TimeProvider timeProvider
         await repository.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task PayAsync(int bonusId, string? userCode, CancellationToken cancellationToken)
+    {
+        var user = RequireUser(userCode);
+        var bonus = await FindBonusAsync(bonusId, cancellationToken);
+        var projects = await repository.GetProjectHoursAsync(bonus.DepartmentCode, bonus.EmployeeNumber, cancellationToken);
+
+        var details = bonus.Pay(projects, user, Now);
+        await repository.SavePaymentAsync(details, cancellationToken);
+    }
+
     private static string RequireUser(string? userCode) =>
         string.IsNullOrWhiteSpace(userCode) ? throw BonusErrors.UserRequired() : userCode.Trim();
 

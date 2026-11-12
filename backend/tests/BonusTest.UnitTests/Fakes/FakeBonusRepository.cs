@@ -1,3 +1,4 @@
+using BonusTest.Domain.Services;
 using BonusTest.Application.Bonuses;
 using BonusTest.Application.Common;
 using BonusTest.Domain.Constants;
@@ -37,6 +38,19 @@ internal sealed class FakeBonusRepository : IBonusRepository
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
+        SaveChangesCalls++;
+        return Task.CompletedTask;
+    }
+
+    public List<ProjectHours> Projects { get; } = [];
+    public List<BonusPaymentDetail> PaymentDetails { get; } = [];
+
+    public Task<IReadOnlyList<ProjectHours>> GetProjectHoursAsync(string departmentCode, int employeeNumber, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ProjectHours>>(Projects);
+
+    public Task SavePaymentAsync(IReadOnlyList<BonusPaymentDetail> details, CancellationToken cancellationToken)
+    {
+        PaymentDetails.AddRange(details);
         SaveChangesCalls++;
         return Task.CompletedTask;
     }

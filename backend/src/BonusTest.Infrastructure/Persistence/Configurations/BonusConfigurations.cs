@@ -34,3 +34,19 @@ public class BonusConfiguration : IEntityTypeConfiguration<Bonus>
         builder.HasOne<State>().WithMany().HasForeignKey(x => x.BonusStateCode);
     }
 }
+
+public class BonusPaymentDetailConfiguration : IEntityTypeConfiguration<BonusPaymentDetail>
+{
+    public void Configure(EntityTypeBuilder<BonusPaymentDetail> builder)
+    {
+        builder.ToTable("BonusPaymentDetail").HasKey(x => x.BonusPaymentDetailId);
+
+        builder.Property(x => x.ProjectName).HasColumnType("varchar(100)");
+        builder.Property(x => x.CreatedBy).HasColumnType("varchar(50)");
+        builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)");
+        builder.Property(x => x.Hours).HasPrecision(8, 2);
+        builder.Property(x => x.Amount).HasPrecision(16, 2);
+
+        builder.HasOne<Bonus>().WithMany().HasForeignKey(x => x.BonusId);
+    }
+}

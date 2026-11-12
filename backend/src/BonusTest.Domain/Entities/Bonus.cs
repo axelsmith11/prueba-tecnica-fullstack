@@ -67,6 +67,19 @@ public class Bonus
         RegisterUpdate(userCode, now);
     }
 
+    /// <summary>Paga el bono: reparte el bruto por proyecto y pasa a Pagado.</summary>
+    public IReadOnlyList<BonusPaymentDetail> Pay(IReadOnlyList<ProjectHours> projects, string userCode, DateTime now)
+    {
+        EnsureRegistered();
+        var details = BonusDistributor.Distribute(GrossAmount, projects)
+            .Select(allocation => BonusPaymentDetail.Create(BonusId, allocation, userCode, now))
+            .ToList();
+
+        BonusStateCode = BonusStates.Paid;
+        RegisterUpdate(userCode, now);
+        return details;
+    }
+
     private void EnsureRegistered()
     {
         if (BonusStateCode != BonusStates.Registered)

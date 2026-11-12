@@ -1,3 +1,4 @@
+using BonusTest.Domain.Services;
 using BonusTest.Domain.Constants;
 using BonusTest.Domain.Entities;
 using BonusTest.Domain.Exceptions;
@@ -92,5 +93,29 @@ public class BonusTests
 
         Assert.Equal("BONUS_NOT_REGISTERED", error.Code);
         Assert.False(bonus.IsDeleted);
+    }
+
+    [Fact]
+    public void Pay_marks_bonus_as_paid_and_returns_one_detail_per_project()
+    {
+        var bonus = NewBonus(); // bruto 500.00
+
+        var details = bonus.Pay([new ProjectHours("Portal de clientes", 120m), new ProjectHours("App móvil", 40m)], "rrhh", Later);
+
+        Assert.Equal(BonusStates.Paid, bonus.BonusStateCode);
+        Assert.Equal("rrhh", bonus.UpdatedBy);
+        Assert.Equal(new[] { 375m, 125m }, details.Select(x => x.Amount));
+        Assert.All(details, x => Assert.Equal("rrhh", x.CreatedBy));
+    }
+
+    [Fact]
+    public void Pay_fails_when_bonus_is_cancelled()
+    {
+        var bonus = NewBonus();
+        bonus.Cancel("rrhh", Later);
+
+        var error = Assert.Throws<BusinessException>(() => bonus.Pay([new ProjectHours("A", 1m)], "rrhh", Later));
+
+        Assert.Equal("BONUS_NOT_REGISTERED", error.Code);
     }
 }

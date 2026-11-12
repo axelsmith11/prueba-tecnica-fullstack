@@ -4,6 +4,7 @@ using BonusTest.Application.Bonuses;
 using BonusTest.Application.Common;
 using BonusTest.Domain.Constants;
 using BonusTest.Domain.Entities;
+using BonusTest.Domain.Services;
 using BonusTest.Domain.Exceptions;
 using BonusTest.Infrastructure.Persistence;
 
@@ -60,6 +61,23 @@ public class BonusRepository(AppDbContext context) : IBonusRepository
         {
             throw BonusErrors.DuplicateBonus();
         }
+    }
+
+    public async Task<IReadOnlyList<ProjectHours>> GetProjectHoursAsync(string departmentCode, int employeeNumber,
+        CancellationToken cancellationToken) =>
+        await context.EmployeeProjectHours.AsNoTracking()
+            .Where(x => x.DepartmentCode == departmentCode && x.EmployeeNumber == employeeNumber)
+            .OrderBy(x => x.EmployeeProjectHoursId)
+            .Select(x => new ProjectHours(x.ProjectName, x.Hours))
+            .ToListAsync(cancellationToken);
+
+    public async Task SavePaymentAsync(IReadOnlyList<BonusPaymentDetail> details, CancellationToken cancellationToken)
+    {
+        // Transacción explícita: el detalle y el paso a Pagado se confirman juntos o no se guarda nada.
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        context.BonusPaymentDetails.AddRange(details);
+        await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     private static IQueryable<Bonus> ApplyFilter(IQueryable<Bonus> bonuses, BonusFilter filter)

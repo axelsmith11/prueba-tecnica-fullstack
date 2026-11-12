@@ -1,3 +1,4 @@
+using BonusTest.Domain.Services;
 using BonusTest.Application.Bonuses;
 using BonusTest.Domain.Constants;
 using BonusTest.Domain.Entities;
@@ -199,5 +200,30 @@ public class BonusServiceTests
             () => _service.GetActiveEmployeeAsync("VENTA", 202, CancellationToken.None));
 
         Assert.Equal("EMPLOYEE_INACTIVE", error.Code);
+    }
+
+    [Fact]
+    public async Task Pay_distributes_gross_by_project_and_marks_bonus_as_paid()
+    {
+        _repository.Projects.AddRange([new ProjectHours("Portal de clientes", 120m), new ProjectHours("App móvil", 40m)]);
+        await _service.RegisterAsync(Request(), User, CancellationToken.None); // bruto 500.00
+
+        await _service.PayAsync(0, User, CancellationToken.None);
+
+        Assert.Equal(BonusStates.Paid, Assert.Single(_repository.Bonuses).BonusStateCode);
+        Assert.Equal(new[] { 375m, 125m }, _repository.PaymentDetails.Select(x => x.Amount));
+    }
+
+    [Fact]
+    public async Task Pay_fails_for_cancelled_bonus()
+    {
+        _repository.Projects.Add(new ProjectHours("Portal de clientes", 120m));
+        await _service.RegisterAsync(Request(), User, CancellationToken.None);
+        await _service.CancelAsync(0, User, CancellationToken.None);
+
+        var error = await Assert.ThrowsAsync<BusinessException>(() => _service.PayAsync(0, User, CancellationToken.None));
+
+        Assert.Equal("BONUS_NOT_REGISTERED", error.Code);
+        Assert.Empty(_repository.PaymentDetails);
     }
 }

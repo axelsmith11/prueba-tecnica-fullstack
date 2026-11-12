@@ -1,5 +1,6 @@
 using BonusTest.Application.Common;
 using BonusTest.Domain.Entities;
+using BonusTest.Domain.Services;
 
 namespace BonusTest.Application.Bonuses;
 
@@ -15,4 +16,7 @@ public interface IBonusRepository
     Task<Bonus?> GetByIdAsync(int bonusId, CancellationToken cancellationToken);
     void Add(Bonus bonus);
     Task SaveChangesAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ProjectHours>> GetProjectHoursAsync(string departmentCode, int employeeNumber, CancellationToken cancellationToken);
+    /// <summary>Guarda el detalle y el cambio de estado del bono en una sola transacción.</summary>
+    Task SavePaymentAsync(IReadOnlyList<BonusPaymentDetail> details, CancellationToken cancellationToken);
 }
